@@ -12,7 +12,11 @@ from models import (
 from utils import build_email_content, send_email
 
 from notif.dependencies import get_current_user
-from notif.queue import notification_queue
+# from notif.queue import notification_queue
+
+# Celery task
+from tasks import send_email_task
+
 
 router = APIRouter(prefix="/notify", tags=["Notifications"])
 
@@ -57,7 +61,7 @@ async def build_and_queue(
  
     result = await notifications_collection.insert_one(doc)
     notification_id = str(result.inserted_id)
-    await notification_queue.put(notification_id)
+    send_email_task.delay(notification_id)
     return notification_id
 
 
@@ -103,7 +107,7 @@ async def task_created_webhook(payload: TaskCreatedWebhook):
 
     result = await notifications_collection.insert_one(doc)
     notification_id = str(result.inserted_id)
-    await notification_queue.put(notification_id)
+    send_email_task.delay(notification_id)
 
     return {
         "message": "Notification queued successfully",
@@ -205,7 +209,7 @@ async def notify_task(task_id: str, request: NotifyTaskRequest, user=Depends(get
 
     result = await notifications_collection.insert_one(doc)
     notification_id = str(result.inserted_id)
-    await notification_queue.put(notification_id)
+    send_email_task.delay(notification_id)
 
     return {
         "message": "Notification queued successfully",
@@ -233,7 +237,6 @@ async def notify_overdue_tasks(user=Depends(get_current_user)):
     async for task in cursor:
         task_id = str(task["_id"])
  
-        # Resolve assignee — use assigned_to or fall back to created_by
         user_obj_id = task.get("assigned_to") or task.get("created_by")
         if not user_obj_id:
             skipped += 1
@@ -297,7 +300,7 @@ async def retry_notification(notification_id: str, user=Depends(get_current_user
         }}
     )
  
-    await notification_queue.put(notification_id)
+    send_email_task.delay(notification_id)
  
     return {
         "message": "Notification re-queued for retry",
@@ -488,7 +491,7 @@ async def bulk_notify(request: BulkNotifyRequest, user=Depends(get_current_user)
 
         result = await notifications_collection.insert_one(doc)
         notification_id = str(result.inserted_id)
-        await notification_queue.put(notification_id)
+        send_email_task.delay(notification_id)
         queued_ids.append(notification_id)
 
     return {
@@ -546,7 +549,7 @@ async def notify_user(user_id: str, body: NotifyUserRequest, user=Depends(get_cu
 
     result = await notifications_collection.insert_one(doc)
     notification_id = str(result.inserted_id)
-    await notification_queue.put(notification_id)
+    send_email_task.delay(notification_id)
 
     return {
         "message": "Notification queued successfully",
