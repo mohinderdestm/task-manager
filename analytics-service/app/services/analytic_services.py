@@ -50,7 +50,7 @@ class AnalyticsService:
             "completion_rate": completion_rate
         }
 
-
+    @staticmethod
     async def get_dashboard_stats(period: str):
 
         start_date, end_date = get_period_range(period)
@@ -104,39 +104,36 @@ class AnalyticsService:
         "priority_status":priority_stats
         }  
     
+    # @staticmethod
+    # async def user_analytics():
 
-    async def user_analytics():
+    #     #if having 1 million data it shouldn't be done 
+    #     tasks = await task_collection.find({}, {"_id":0}).to_list(length=None)
 
-        #if having 1 million data it shouldn't be done 
-        tasks = await task_collection.find({}, {"_id":0}).to_list(length=None)
+    #     df = pd.DataFrame(tasks)
 
-        df = pd.DataFrame(tasks)
+    #     status_counts = df["status"].value_counts().to_dict()
 
-        status_counts = df["status"].value_counts().to_dict()
+    #     # todo
+    #     df = df[df["completed_at"].notna()]
 
-        # todo
-        df = df[df["completed_at"].notna()]
+    #     df["created_at"] = pd.to_datetime(df["created_at"])
+    #     df["completed_at"] = pd.to_datetime(df["completed_at"])
 
-        df["created_at"] = pd.to_datetime(df["created_at"])
-        df["completed_at"] = pd.to_datetime(df["completed_at"])
-
-        tasks_per_day = df.groupby(df["created_at"].dt.date).size().to_dict()
-        tasks_completed_per_day = df.groupby(df["completed_at"].dt.date).size().to_dict()
+    #     tasks_per_day = df.groupby(df["created_at"].dt.date).size().to_dict()
+    #     tasks_completed_per_day = df.groupby(df["completed_at"].dt.date).size().to_dict()
        
 
-        df["time_spent"] = df["completed_at"] - df["created_at"]
+    #     df["time_spent"] = df["completed_at"] - df["created_at"]
 
-        avg_time = df["time_spent"].mean().total_seconds()
+    #     avg_time = df["time_spent"].mean().total_seconds()
 
-        return {
-            "avg_time":avg_time,
-            "status_counts":status_counts,
-            "tasks_per_day":tasks_per_day,
-            "tasks_completed_per_day":tasks_completed_per_day
-        }
+    #     return {
+    #         "avg_time":avg_time,
+    #         "status_counts":status_counts,
+    #         "tasks_per_day":tasks_per_day,
+    #         "tasks_completed_per_day":tasks_completed_per_day
+    #     }
     
-   
-
-
-
-   
+    # @staticmethod
+    # async def user_report():
