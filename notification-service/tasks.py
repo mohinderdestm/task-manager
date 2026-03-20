@@ -8,7 +8,10 @@ from celery_app import celery
 from models import NotificationStatus
 
 from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+from sendgrid.helpers.mail import (
+    Mail, Attachment, FileContent,
+    FileName, FileType, Disposition
+)
 
 load_dotenv()
 
@@ -20,10 +23,19 @@ SENDGRID_API_KEY    = os.getenv("SENDGRID_API_KEY", "")
 SENDGRID_FROM_EMAIL = os.getenv("FROM_EMAIL", "noreply@taskmanager.com")
 
 
-def _send_email_sync(to_email: str, subject: str, content: str):
+def _send_email_sync(
+    to_email: str, 
+    subject: str, 
+    content: str,
+    attachment_base64: str = None,
+    attachment_filename: str = None,
+    attachment_type: str = None
+):
 
     if not SENDGRID_API_KEY:
         print(f"[DEV MODE] Email → {to_email} | Subject: {subject}")
+        if attachment_filename:
+            print(f"[DEV MODE] Attachment: {attachment_filename}")
         return True, ""
 
     try:
@@ -33,6 +45,17 @@ def _send_email_sync(to_email: str, subject: str, content: str):
             subject=subject,
             html_content=content
         )
+        #file attachment fn
+        if attachment_base64 and attachment_filename:
+            attachment = Attachment(
+                FileContent(attachment_base64),
+                FileName(attachment_filename),
+                FileType(attachment_type or "application/pdf"),
+                Disposition("attachment")
+            )
+            message.attachment = attachment
+        
+        # Send email via SendGrid
         sg = SendGridAPIClient(SENDGRID_API_KEY)
         response = sg.send(message)
 
@@ -66,6 +89,10 @@ def send_email_task(self, notification_id: str):
     subject = doc.get("subject", "Notification")
     html_body = doc.get("body", "")
 
+    attachment_base64 = doc.get("attachment_base64")
+    attachment_filename = doc.get("attachment_filename")
+    attachment_type = doc.get("attachment_type")
+
     if not recipient_email:
         _notifications.update_one(
             {"_id": ObjectId(notification_id)},
@@ -77,7 +104,14 @@ def send_email_task(self, notification_id: str):
         return {"status": "failed", "reason": "no recipient email"}
 
     # Send email via SendGrid (sync)
-    success, error_msg = _send_email_sync(recipient_email, subject, html_body)
+    success, error_msg = _send_email_sync(
+        to_email=recipient_email, 
+        subject=subject, 
+        content=html_body,
+        attachment_base64=attachment_base64,
+        attachment_filename=attachment_filename,
+        attachment_type=attachment_type
+    )
 
     # Success
     if success:
@@ -89,7 +123,8 @@ def send_email_task(self, notification_id: str):
                 "error_message": None
             }}
         )
-        print(f"✅  Email sent: {notification_id} → {recipient_email}")
+        print(f"✅  Email sent: {notification_id} → {recipient_email}"
+              + (f" (with attachment: {attachment_filename})" if attachment_filename else ""))
         return {"status": "sent", "notification_id": notification_id}
 
     # Failure → retry

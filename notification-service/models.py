@@ -48,3 +48,12 @@ class NotifyUserRequest(BaseModel):
     subject: str
     message: str
     recipient_email: Optional[EmailStr] = None
+
+# Email with attachment (used by report-service for salary reports)
+class EmailWithAttachmentRequest(BaseModel):
+    recipient_email: EmailStr
+    subject: str
+    message: str
+    attachment_base64: str          # PDF file encoded as base64 string
+    attachment_filename: str        # e.g. "salary_report_abc123.pdf"
+    attachment_type: str = "application/pdf"

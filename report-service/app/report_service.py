@@ -1,22 +1,25 @@
+import asyncio
+import os
 import httpx
 
-ANALYTICS_SERVICE_URL = "http://127.0.0.1:3002"
+
+ANALYTICS_SERVICE_URL = os.getenv("ANALYTICS_SERVICE_URL", "http://127.0.0.1:3002")
 
 
 async def get_user_task_report(user_id: str):
 
     async with httpx.AsyncClient() as client:
 
-        user_response = await client.get(
-            f"{ANALYTICS_SERVICE_URL}/analytics/user/{user_id}/stats"
-        )
-
-        dashboard_response = await client.get(
-            f"{ANALYTICS_SERVICE_URL}/analytics/dashboard?period=week"
+        user_response, dashboard_response = await asyncio.gather(
+            client.get(f"{ANALYTICS_SERVICE_URL}/analytics/user/{user_id}/stats"),
+            client.get(f"{ANALYTICS_SERVICE_URL}/analytics/dashboard?period=week")
         )
 
     if user_response.status_code != 200:
-        return {"error": "Analytics service failed"}
+        return {"error": f"Analytics service failed for user stats: {user_response.status_code}"}
+ 
+    if dashboard_response.status_code != 200:
+        return {"error": f"Analytics service failed for dashboard: {dashboard_response.status_code}"}
 
     user_data = user_response.json()
     dashboard_data = dashboard_response.json()

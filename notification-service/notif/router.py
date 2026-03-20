@@ -7,7 +7,7 @@ from database import notifications_collection, tasks_collection, users_collectio
 from models import (
     NotifyTaskRequest, NotificationStatus, NotificationType,
     BulkNotifyRequest, NotifyUserRequest, TaskCreatedWebhook,
-    TaskUpdatedWebhook
+    TaskUpdatedWebhook, EmailWithAttachmentRequest
 )
 from utils import build_email_content, send_email
 
@@ -64,6 +64,50 @@ async def build_and_queue(
     send_email_task.delay(notification_id)
     return notification_id
 
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /notify/email-with-attachment
+# Called by report-service to send emails with PDF attachments
+# ─────────────────────────────────────────────────────────────────────────────
+@router.post("/email-with-attachment", status_code=status.HTTP_202_ACCEPTED)
+async def send_email_with_attachment(payload: EmailWithAttachmentRequest):
+
+    html_body = f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;padding:20px;
+                border:1px solid #e0e0e0;border-radius:8px">
+        <h2 style="color:#4A90D9">{payload.subject}</h2>
+        <p>{payload.message}</p>
+        <p>Please find your report attached to this email.</p>
+        <p style="color:#888;font-size:12px">— Task Manager System</p>
+    </div>
+    """
+
+    doc = {
+        "task_id":             None,
+        "user_id":             None,
+        "recipient_email":     payload.recipient_email,
+        "notification_type":   "salary_report",
+        "status":              NotificationStatus.PENDING,
+        "subject":             payload.subject,
+        "body":                html_body,
+        "attachment_base64":   payload.attachment_base64,
+        "attachment_filename": payload.attachment_filename,
+        "attachment_type":     payload.attachment_type,
+        "retry_count":         0,
+        "error_message":       None,
+        "created_at":          datetime.utcnow(),
+        "sent_at":             None
+    }
+
+    result = await notifications_collection.insert_one(doc)
+    notification_id = str(result.inserted_id)
+    send_email_task.delay(notification_id)
+
+    return {
+        "message": "Email with attachment queued successfully",
+        "notification_id": notification_id,
+        "status": NotificationStatus.PENDING,
+        "recipient_email": payload.recipient_email
+    }
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Webhook: POST /notify/task-created
