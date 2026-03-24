@@ -41,7 +41,8 @@ async def signup(user:User):
     token, issued_at ,expire = create_access_token({
             "user_id":str(result.inserted_id),
             "email":user.email,
-            "role": user_data["role"] 
+            "role": user_data["role"],
+            "name": user.name
         })
 
     refresh_token = create_refresh_token({
@@ -82,7 +83,8 @@ async def sign_in(user: UserLogin):
     token = create_access_token({
         "user_id": db_user["_id"],
         "email": db_user["email"],
-        "role": db_user.get("role", "employee") 
+        "role": db_user.get("role", "employee"),
+        "name": db_user.get("name", "")
     })
     
     return {
@@ -107,7 +109,8 @@ async def validate_token(credentials: HTTPAuthorizationCredentials = Depends(sec
         "valid": True,
         "user_id": payload.get("user_id"),
         "email": payload.get("email"),
-         "role": payload.get("role")
+         "role": payload.get("role"),
+         "name": payload.get("name")
     }
 
 @app.post("/auth/refresh")

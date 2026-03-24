@@ -203,19 +203,28 @@ async def send_message_http(
 ):
     
     conv = await _get_conversation_or_404(conv_id)
-    me   = user["user_id"]
+    me = user["user_id"]
     if me not in conv["members"]:
-        raise HTTPException(status_code=403, detail="Not a member")
+        raise HTTPException(status_code=403, details="Not a member")
     
-    receiver_id = next((m for m in conv["members"] if m != me), None)
+    receiver_id = None
+    receiver_name = None
+    if conv["conversation_type"] == ConversationType.DIRECT:
+        idx = next((i for i,m in enumerate(conv["members"]) if m != me), None)
+        if idx is not None:
+            receiver_id = conv["members"][idx]
+            receiver_name = conv["member_names"][idx] if idx < len(conv["member_names"]) else None
 
-    doc = MessageDocument(
-        conversation_id=conv_id,
-        sender_id=me,
-        receiver_id=receiver_id,
-        content=body.content,
-        message_type=body.message_type,
-    )
+        doc = MessageDocument(
+            conversation_id=conv_id,
+            sender_id=me,
+            sender_name=user.get("name", ""),
+            receiver_id=receiver_id,
+            receiver_name=receiver_name,
+            content=body.content,
+            message_type=body.message_type,
+        )
+
     result = await messages_collection.insert_one(doc.dict())
     msg_id = str(result.inserted_id)
 
@@ -328,14 +337,23 @@ async def websocket_endpoint(
                     }))
                     continue
 
-                receiver_id = next((m for m in conv["members"] if m != me), None)
-
+                receiver_id = None
+                receiver_name = None
+                if conv["conversation_type"] == ConversationType.DIRECT:
+                    idx = next((i for i,m in enumerate(conv["members"]) if m != me), None)
+                    if idx is not None:
+                        receiver_id = conv["members"][idx]
+                        receiver_name = conv["member_names"][idx] if idx < len(conv["member_names"]) else None
+                
                 doc = MessageDocument(
                     conversation_id=data.conversation_id,
                     sender_id=me,
                     sender_name=my_name,
+                    receiver_id=receiver_id,
+                    receiver_name=receiver_name,
                     content=data.content.strip(),
                 )
+
                 result = await messages_collection.insert_one(doc.dict())
                 msg_id = str(result.inserted_id)
 

@@ -17,12 +17,13 @@ class ConversationType(str, Enum):
 class MessageDocument(BaseModel):
     conversation_id: str
     sender_id: str
+    sender_name: str = ""        
     receiver_id: Optional[str] = None
+    receiver_name: Optional[str] = None   
     content: str
     message_type: MessageType = MessageType.TEXT
     is_read: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
-
 
 class ConversationDocument(BaseModel):
     conversation_type: ConversationType

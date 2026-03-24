@@ -10,7 +10,7 @@ DB_NAME = os.getenv("DB_NAME", "task_manager")
 client = AsyncIOMotorClient(MONGO_URI)
 db = client[DB_NAME]
 
-messages_collection = db["messages"]
+messages_collection = db["messages_aakash"]
 conversations_collection = db["conversations"]
 
 async def create_indexes():
