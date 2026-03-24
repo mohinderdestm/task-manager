@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat App</title>
+</head>
+<body>
+
+<h2>Chat Application</h2>
+
+<!-- CONNECT -->
+<h3>Connect</h3>
+<input id="userId" placeholder="Enter your user id">
+<button onclick="connect()">Connect</button>
+
+<button onclick="setToken()">Set Token</button>
+
+<br><br>
+
+<!--  CREATE GROUP -->
+<h3>Create Group</h3>
+<input id="groupId" placeholder="Group ID">
+
+<select id="usersDropdown" multiple style="width: 200px; height: 100px;">
+</select> 
+<button onclick="createGroup()">Create Group</button>
+
+<p id="groupStatus"></p>
+
+<hr>
+
+<!-- CHAT TYPE -->
+<h3>Chat</h3>
+
+<label>Chat Type:</label>
+<select id="chatType">
+    <option value="direct">Direct</option>
+    <option value="group">Group</option>
+</select>
+
+<br><br>
+
+<label>Receiver / Group ID:</label>
+<input id="receiver" placeholder="user2 OR group1">
+
+<br><br>
+
+<label>Message:</label>
+<input id="message" placeholder="Type message">
+
+<button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+
+<hr>
+
+<!--MESSAGES -->
+<ul id="messages"></ul>
+
+<script>
+let ws;
+
+// CONNECT
+function connect() {
+    const userId = document.getElementById("userId").value;
+
+    ws = new WebSocket(`ws://localhost:8005/ws/${userId}`);
+
+    ws.onopen = () => {
+        console.log("Connected");
+        document.getElementById("sendBtn").disabled = false;
+    };
+
+    ws.onmessage = function(event) {
+        console.log("RECEIVED:", event.data); 
+        let li = document.createElement("li");
+
+        if (event.data.startsWith("[")) {
+            li.style.color = "purple";   // group message
+        } else if (event.data.includes("You")) {
+            li.style.color = "green"; //your message
+        } else {
+            li.style.color = "blue";  //others
+        }
+
+        li.innerText = event.data;
+        document.getElementById("messages").appendChild(li);
+    };
+
+    ws.onclose = () => {
+        console.log("Disconnected");
+        document.getElementById("sendBtn").disabled = true;
+    };
+}
+
+// SEND MESSAGE
+function sendMessage() {
+    const type = document.getElementById("chatType").value;
+    const receiver = document.getElementById("receiver").value;
+    const message = document.getElementById("message").value;
+
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert("Please connect first!");
+        return;
+    }
+
+    if (type === "group") {
+        ws.send(`group:${receiver}:${message}`);
+    } else {
+        ws.send(`${receiver}:${message}`);
+    }
+}
+
+// CREATE GROUP
+async function createGroup() {
+    const groupId = document.getElementById("groupId").value;
+
+    const selectedOptions = document.getElementById("usersDropdown").selectedOptions;
+    const members = Array.from(selectedOptions).map(option => option.value);
+
+    const token = localStorage.getItem("token");
+
+    const response = await fetch("http://localhost:8005/create-group", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+            group_id: groupId,
+            members: members
+        })
+    });
+
+    const data = await response.json();
+    document.getElementById("groupStatus").innerText = data.message;
+}
+
+function setToken() {
+    const token = prompt("Paste your token here:");
+    localStorage.setItem("token", token);
+    alert("Token saved!");
+}
+
+// FIXED USERS LOADING
+async function loadUsers() {
+    const token = localStorage.getItem("token");
+
+    const res = await fetch("http://localhost:8001/users/public", {
+        headers: {
+            "Authorization": `Bearer ${token}`
+        }
+    });
+
+    const data = await res.json();
+
+    const dropdown = document.getElementById("usersDropdown");
+    dropdown.innerHTML = "";
+
+    // handle both formats
+    const users = data.users || data;
+
+    users.forEach(user => {
+        const option = document.createElement("option");
+        option.value = user._id || user.id;
+        option.text = user.name || user.username;
+        dropdown.appendChild(option);
+    });
+}
+
+// RUN ON PAGE LOAD
+window.onload = loadUsers;
+</script>
+
+</body>
+</html>
