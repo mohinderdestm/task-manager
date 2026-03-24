@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Messages</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f0f2f5; height: 100vh; display: flex; flex-direction: column; }
+
+    /* ── Login ── */
+    #login-screen {
+      display: flex; align-items: center; justify-content: center; height: 100vh;
+    }
+    .login-box {
+      background: #fff; padding: 32px; border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.1); width: 360px;
+    }
+    .login-box h2 { margin-bottom: 20px; color: #333; }
+    .login-box label { font-size: 13px; color: #555; display: block; margin-bottom: 4px; }
+    .login-box textarea, .login-box input {
+      width: 100%; border: 1px solid #ddd; border-radius: 6px;
+      padding: 9px 11px; font-size: 14px; font-family: inherit;
+      margin-bottom: 14px;
+    }
+    .login-box textarea { height: 80px; resize: none; }
+    .login-box button {
+      width: 100%; background: #0084ff; color: #fff; border: none;
+      border-radius: 6px; padding: 11px; font-size: 15px; cursor: pointer;
+    }
+    .login-box button:hover { background: #006ee0; }
+
+    /* ── App shell ── */
+    #app { display: none; height: 100vh; }
+    #app.visible { display: flex; flex-direction: column; }
+
+    /* ── Header ── */
+    .header {
+      background: #fff; border-bottom: 1px solid #ddd;
+      padding: 0 16px; height: 52px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .header span { font-weight: bold; font-size: 16px; color: #333; }
+    .header-right { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #666; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; }
+    .dot.on { background: #42b72a; }
+
+    /* ── Body ── */
+    .body { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 260px; background: #fff; border-right: 1px solid #ddd;
+      display: flex; flex-direction: column; flex-shrink: 0;
+    }
+    .sidebar-top {
+      padding: 10px; border-bottom: 1px solid #eee;
+      display: flex; gap: 6px;
+    }
+    .sidebar-top button {
+      flex: 1; padding: 7px; border: 1px solid #ddd; background: #fff;
+      border-radius: 6px; font-size: 12px; cursor: pointer; color: #444;
+    }
+    .sidebar-top button:hover { background: #f5f5f5; }
+    .conv-list { flex: 1; overflow-y: auto; }
+    .conv-item {
+      padding: 12px 14px; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    .conv-item:hover { background: #f5f5f5; }
+    .conv-item.active { background: #e7f3ff; }
+    .conv-name { font-size: 14px; font-weight: 600; color: #222; }
+    .conv-preview { font-size: 12px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── Chat ── */
+    .chat { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .chat-header {
+      padding: 0 16px; height: 52px; background: #fff;
+      border-bottom: 1px solid #ddd; display: flex; align-items: center;
+      justify-content: space-between; flex-shrink: 0;
+    }
+    .chat-header span { font-weight: bold; font-size: 15px; color: #333; }
+    .chat-header button {
+      font-size: 12px; padding: 5px 10px; border: 1px solid #ddd;
+      background: #fff; border-radius: 5px; cursor: pointer; color: #444;
+    }
+    .chat-header button:hover { background: #f5f5f5; }
+
+    .messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+
+    .msg { display: flex; flex-direction: column; max-width: 60%; }
+    .msg.own { align-self: flex-end; align-items: flex-end; }
+    .msg.other { align-self: flex-start; align-items: flex-start; }
+    .msg-sender { font-size: 11px; color: #888; margin-bottom: 2px; }
+    .msg-bubble {
+      padding: 9px 13px; border-radius: 16px; font-size: 14px; line-height: 1.4; word-wrap: break-word;
+    }
+    .msg.own .msg-bubble { background: #0084ff; color: #fff; border-bottom-right-radius: 4px; }
+    .msg.other .msg-bubble { background: #fff; border: 1px solid #ddd; color: #222; border-bottom-left-radius: 4px; }
+    .msg-time { font-size: 10px; color: #aaa; margin-top: 2px; }
+
+    .system-msg { text-align: center; font-size: 12px; color: #aaa; padding: 2px 0; }
+    .typing { padding: 0 16px 8px; font-size: 12px; color: #888; min-height: 20px; }
+
+    .input-row {
+      padding: 10px 12px; background: #fff; border-top: 1px solid #ddd;
+      display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;
+    }
+    .input-row textarea {
+      flex: 1; border: 1px solid #ddd; border-radius: 20px;
+      padding: 9px 14px; font-size: 14px; font-family: inherit;
+      resize: none; max-height: 100px; min-height: 38px; line-height: 1.4;
+    }
+    .input-row textarea:focus { outline: none; border-color: #0084ff; }
+    .input-row button {
+      background: #0084ff; color: #fff; border: none;
+      border-radius: 50%; width: 38px; height: 38px; font-size: 16px;
+      cursor: pointer; flex-shrink: 0;
+    }
+    .input-row button:hover { background: #006ee0; }
+
+    .placeholder {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      color: #aaa; font-size: 14px;
+    }
+
+    /* ── Modal ── */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.4);
+      display: none; align-items: center; justify-content: center; z-index: 10;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: 8px; padding: 24px; width: 360px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.15);
+    }
+    .modal h3 { margin-bottom: 16px; font-size: 16px; color: #333; }
+    .modal label { font-size: 13px; color: #555; display: block; margin-bottom: 4px; }
+    .modal input {
+      width: 100%; border: 1px solid #ddd; border-radius: 6px;
+      padding: 8px 10px; font-size: 14px; margin-bottom: 12px; font-family: inherit;
+    }
+    .modal-btns { display: flex; gap: 8px; margin-top: 4px; }
+    .modal-btns button {
+      flex: 1; padding: 9px; border-radius: 6px; font-size: 14px; cursor: pointer; border: 1px solid #ddd;
+    }
+    .modal-btns .primary { background: #0084ff; color: #fff; border-color: #0084ff; }
+    .modal-btns .primary:hover { background: #006ee0; }
+    .modal-btns .cancel { background: #fff; color: #444; }
+    .modal-btns .cancel:hover { background: #f5f5f5; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 20px; right: 20px; background: #333; color: #fff;
+      padding: 10px 16px; border-radius: 6px; font-size: 13px;
+      opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20;
+    }
+    #toast.show { opacity: 1; }
+    #toast.err { background: #d93025; }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <h2>💬 Messages</h2>
+    <label>JWT Token</label>
+    <textarea id="token-input" placeholder="Paste your JWT token…"></textarea>
+    <label>Your Name (optional fallback)</label>
+    <input id="name-input" type="text" placeholder="Display name" />
+    <button onclick="doLogin()">Sign In</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="header">
+    <span>💬 Messages</span>
+    <div class="header-right">
+      <div class="dot" id="ws-dot"></div>
+      <span id="me-name"></span>
+    </div>
+  </div>
+  <div class="body">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-top">
+        <button onclick="openOverlay('dm-overlay')">+ Direct</button>
+        <button onclick="openOverlay('grp-overlay')">+ Group</button>
+      </div>
+      <div class="conv-list" id="conv-list"></div>
+    </div>
+    <!-- Chat -->
+    <div class="chat" id="chat-panel">
+      <div class="placeholder">Select a conversation to start chatting</div>
+    </div>
+  </div>
+</div>
+
+<!-- DM Modal -->
+<div class="overlay" id="dm-overlay">
+  <div class="modal">
+    <h3>New Direct Message</h3>
+    <label>User ID</label>
+    <input id="dm-id" placeholder="user_id" />
+    <label>Name</label>
+    <input id="dm-name" placeholder="Their display name" />
+    <div class="modal-btns">
+      <button class="cancel" onclick="closeOverlay('dm-overlay')">Cancel</button>
+      <button class="primary" onclick="createDM()">Start Chat</button>
+    </div>
+  </div>
+</div>
+
+<!-- Group Modal -->
+<div class="overlay" id="grp-overlay">
+  <div class="modal">
+    <h3>New Group</h3>
+    <label>Group Name</label>
+    <input id="grp-name" placeholder="e.g. Dev Team" />
+    <label>Member IDs (comma separated)</label>
+    <input id="grp-ids" placeholder="id1, id2" />
+    <label>Member Names (comma separated)</label>
+    <input id="grp-names" placeholder="Alice, Bob" />
+    <div class="modal-btns">
+      <button class="cancel" onclick="closeOverlay('grp-overlay')">Cancel</button>
+      <button class="primary" onclick="createGroup()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Member Modal -->
+<div class="overlay" id="add-overlay">
+  <div class="modal">
+    <h3>Add Member</h3>
+    <label>User ID</label>
+    <input id="add-id" placeholder="user_id" />
+    <label>Name</label>
+    <input id="add-name" placeholder="Display name" />
+    <div class="modal-btns">
+      <button class="cancel" onclick="closeOverlay('add-overlay')">Cancel</button>
+      <button class="primary" onclick="addMember()">Add</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const WS_URL  = "{{ ws_url }}";
+const API_URL = "{{ api_url }}";
+
+let token = "", me = { user_id: "", name: "" };
+let ws = null, convs = [], activeConv = null;
+let typingTimer = null;
+
+function decodeJWT(t) {
+  try { return JSON.parse(atob(t.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))); }
+  catch { return null; }
+}
+
+// ── Login ─────────────────────────────────────────────────────
+function doLogin() {
+  token = document.getElementById("token-input").value.trim();
+  const fallback = document.getElementById("name-input").value.trim();
+  if (!token) { toast("Paste a JWT token first", true); return; }
+  const p = decodeJWT(token);
+  if (!p) { toast("Invalid JWT", true); return; }
+  me.user_id = p.user_id || p.sub || "";
+  me.name    = p.name || fallback || me.user_id;
+  if (!me.user_id) { toast("Token missing user_id/sub", true); return; }
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app").classList.add("visible");
+  document.getElementById("me-name").textContent = me.name;
+  loadConvs();
+  connectWS();
+}
+
+// ── API ────────────────────────────────────────────────────────
+async function api(method, path, body) {
+  const r = await fetch(API_URL + path, {
+    method,
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!r.ok) { const e = await r.json().catch(()=>({detail:"Error"})); throw new Error(e.detail); }
+  return r.json();
+}
+
+// ── Conversations ──────────────────────────────────────────────
+async function loadConvs() {
+  try {
+    const d = await api("GET", "/messaging/conversations");
+    convs = d.conversations || [];
+    renderSidebar();
+  } catch(e) { toast(e.message, true); }
+}
+
+function convName(c) {
+  if (c.conversation_type === "group") return c.name || "Group";
+  const i = c.members.indexOf(me.user_id);
+  const other = i === 0 ? 1 : 0;
+  return c.member_names[other] || c.members[other] || "Direct";
+}
+
+function renderSidebar() {
+  const el = document.getElementById("conv-list");
+  if (!convs.length) {
+    el.innerHTML = `<p style="padding:14px;color:#aaa;font-size:13px">No conversations yet</p>`;
+    return;
+  }
+  el.innerHTML = convs.map(c => `
+    <div class="conv-item ${activeConv && activeConv._id===c._id ? "active" : ""}" onclick="openConv('${c._id}')">
+      <div class="conv-name">${esc(convName(c))} ${c.conversation_type==="group" ? "👥" : ""}</div>
+      <div class="conv-preview">${esc(c.last_message || "—")}</div>
+    </div>`).join("");
+}
+
+async function openConv(id) {
+  activeConv = convs.find(c => c._id === id);
+  if (!activeConv) return;
+  renderSidebar();
+  renderChatPanel();
+  if (ws && ws.readyState === 1)
+    ws.send(JSON.stringify({ type: "read", conversation_id: id }));
+  try {
+    const d = await api("GET", `/messaging/conversations/${id}/messages?limit=60`);
+    renderMessages(d.messages || []);
+  } catch(e) { toast(e.message, true); }
+}
+
+// ── Chat Panel ─────────────────────────────────────────────────
+function renderChatPanel() {
+  const c = activeConv;
+  const isGroup = c.conversation_type === "group";
+  document.getElementById("chat-panel").innerHTML = `
+    <div class="chat-header">
+      <span>${esc(convName(c))} ${isGroup ? "👥" : ""}</span>
+      ${isGroup ? `<button onclick="openOverlay('add-overlay')">+ Add Member</button>` : ""}
+    </div>
+    <div class="messages" id="msgs"></div>
+    <div class="typing" id="typing"></div>
+    <div class="input-row">
+      <textarea id="msg-input" placeholder="Type a message…"
+        onkeydown="handleKey(event)" oninput="sendTyping()"></textarea>
+      <button onclick="sendMsg()">➤</button>
+    </div>`;
+}
+
+function renderMessages(msgs) {
+  const el = document.getElementById("msgs");
+  if (!el) return;
+  if (!msgs.length) {
+    el.innerHTML = `<p style="color:#aaa;font-size:13px;text-align:center;margin-top:20px">No messages yet</p>`;
+    return;
+  }
+  el.innerHTML = msgs.map(msgHTML).join("");
+  el.scrollTop = el.scrollHeight;
+}
+
+function msgHTML(m) {
+  if (m.message_type === "system") return `<div class="system-msg">${esc(m.content)}</div>`;
+  const own = m.sender_id === me.user_id || m.is_own;
+  const time = new Date(m.created_at || Date.now()).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+  const showName = !own && activeConv && activeConv.conversation_type === "group";
+  return `<div class="msg ${own ? "own" : "other"}">
+    ${showName ? `<div class="msg-sender">${esc(m.sender_name)}</div>` : ""}
+    <div class="msg-bubble">${esc(m.content)}</div>
+    <div class="msg-time">${time}</div>
+  </div>`;
+}
+
+function appendMsg(m) {
+  const el = document.getElementById("msgs");
+  if (!el) return;
+  el.insertAdjacentHTML("beforeend", msgHTML(m));
+  el.scrollTop = el.scrollHeight;
+}
+
+// ── Send ───────────────────────────────────────────────────────
+function handleKey(e) {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+}
+
+let typingSent = false;
+function sendTyping() {
+  if (!ws || ws.readyState !== 1 || !activeConv || typingSent) return;
+  ws.send(JSON.stringify({ type: "typing", conversation_id: activeConv._id }));
+  typingSent = true;
+  setTimeout(() => typingSent = false, 3000);
+}
+
+async function sendMsg() {
+  const inp = document.getElementById("msg-input");
+  if (!inp || !activeConv) return;
+  const content = inp.value.trim();
+  if (!content) return;
+  inp.value = "";
+  if (ws && ws.readyState === 1) {
+    ws.send(JSON.stringify({ type: "message", conversation_id: activeConv._id, content }));
+  } else {
+    try {
+      await api("POST", `/messaging/conversations/${activeConv._id}/messages`, { content });
+      appendMsg({ sender_id: me.user_id, sender_name: me.name, content, created_at: new Date().toISOString(), is_own: true });
+    } catch(e) { toast(e.message, true); }
+  }
+}
+
+// ── WebSocket ─────────────────────────────────────────────────
+function connectWS() {
+  ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(token)}`);
+  ws.onopen  = () => document.getElementById("ws-dot").classList.add("on");
+  ws.onclose = () => { document.getElementById("ws-dot").classList.remove("on"); setTimeout(connectWS, 4000); };
+  ws.onerror = () => {};
+  ws.onmessage = ({ data }) => {
+    let m; try { m = JSON.parse(data); } catch { return; }
+    if (m.type === "message") {
+      const c = convs.find(c => c._id === m.conversation_id);
+      if (c) { c.last_message = m.content; renderSidebar(); }
+      if (activeConv && activeConv._id === m.conversation_id) { appendMsg(m); clearTyping(); }
+    } else if (m.type === "typing") {
+      if (activeConv && activeConv._id === m.conversation_id) showTyping(m.user_name);
+    } else if (m.type === "group_created" || m.type === "member_added") {
+      loadConvs();
+    } else if (m.type === "error") {
+      toast(m.detail, true);
+    }
+  };
+}
+
+function showTyping(name) {
+  const el = document.getElementById("typing");
+  if (el) el.textContent = `${name} is typing…`;
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(clearTyping, 3000);
+}
+function clearTyping() {
+  const el = document.getElementById("typing");
+  if (el) el.textContent = "";
+}
+
+// ── Modals ─────────────────────────────────────────────────────
+function openOverlay(id)  { document.getElementById(id).classList.add("open"); }
+function closeOverlay(id) { document.getElementById(id).classList.remove("open"); }
+
+async function createDM() {
+  const uid  = document.getElementById("dm-id").value.trim();
+  const name = document.getElementById("dm-name").value.trim();
+  if (!uid || !name) { toast("Fill all fields", true); return; }
+  try {
+    const d = await api("POST", "/messaging/conversations/direct", { target_user_id: uid, target_user_name: name });
+    closeOverlay("dm-overlay");
+    await loadConvs();
+    openConv(d.conversation._id);
+  } catch(e) { toast(e.message, true); }
+}
+
+async function createGroup() {
+  const name  = document.getElementById("grp-name").value.trim();
+  const ids   = document.getElementById("grp-ids").value.split(",").map(s=>s.trim()).filter(Boolean);
+  const names = document.getElementById("grp-names").value.split(",").map(s=>s.trim()).filter(Boolean);
+  if (!name || !ids.length) { toast("Group name and members required", true); return; }
+  try {
+    const d = await api("POST", "/messaging/conversations/group", { name, member_ids: ids, member_names: names });
+    closeOverlay("grp-overlay");
+    await loadConvs();
+    openConv(d.conversation._id);
+  } catch(e) { toast(e.message, true); }
+}
+
+async function addMember() {
+  if (!activeConv) return;
+  const uid   = document.getElementById("add-id").value.trim();
+  const uname = document.getElementById("add-name").value.trim();
+  if (!uid || !uname) { toast("Fill all fields", true); return; }
+  try {
+    await api("POST", `/messaging/conversations/${activeConv._id}/members`, { user_id: uid, user_name: uname });
+    closeOverlay("add-overlay");
+    toast(`${uname} added`);
+    await loadConvs();
+  } catch(e) { toast(e.message, true); }
+}
+
+// ── Helpers ────────────────────────────────────────────────────
+let toastT;
+function toast(msg, err = false) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "show" + (err ? " err" : "");
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.className = "", 3000);
+}
+function esc(s) {
+  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+document.querySelectorAll(".overlay").forEach(el =>
+  el.addEventListener("click", e => { if (e.target === el) el.classList.remove("open"); })
+);
+
+const t = new URLSearchParams(location.search).get("token");
+if (t) document.getElementById("token-input").value = t;
+</script>
+</body>
+</html>
