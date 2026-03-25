@@ -8,12 +8,22 @@ from utils import create_access_token, verify_token, hash_password, create_refre
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import Depends
 
+from fastapi.middleware.cors import CORSMiddleware
+
 # test branch
 app = FastAPI()
 
 PORT = int(os.getenv("PORT", 8000))
 
 security = HTTPBearer()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=PORT, reload=True)
