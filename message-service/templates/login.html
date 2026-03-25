@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body {
+    font-family: Arial;
+    background: #f4f6f8;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+.card {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    width: 300px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+}
+button {
+    width: 100%;
+    padding: 10px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+<h2>Login</h2>
+
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+
+<button onclick="login()">Login</button>
+
+<p style="text-align:center;">New user? <a href="/signup">Signup</a></p>
+</div>
+
+<script>
+async function login() {
+    const res = await fetch("/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            email: email.value,
+            password: password.value
+        })
+    });
+
+    const data = await res.json();
+
+    if (data.token) {
+        sessionStorage.setItem("token", data.token);
+        window.location.href = "/home";
+    } else {
+        alert("Invalid credentials");
+    }
+}
+</script>
+
+</body>
+</html>
+
+<!-- <!DOCTYPE html>
+<html>
+<body>
+
+<h2>Login</h2>
+
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+
+<button onclick="login()">Login</button>
+
+<p>New user? <a href="/signup">Signup here</a></p>
+
+<script>
+async function login() {
+    const res = await fetch("/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            email: document.getElementById("email").value,
+            password: document.getElementById("password").value
+        })
+    });
+
+    const data = await res.json();
+
+    if (data.token) {
+        sessionStorage.setItem("token", data.token);
+        window.location.href = "/home";
+    } else {
+        alert("Invalid credentials");
+    }
+}
+</script>
+
+</body>
+</html> -->

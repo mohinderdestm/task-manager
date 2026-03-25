@@ -13,8 +13,7 @@ security = HTTPBearer()
 
 async def validate_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
 
-    token = credentials.credentials.replace("Bearer ", "")
-
+    token = credentials.credentials
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body {
+    font-family: Arial;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.header {
+    background: #2c3e50;
+    color: white;
+    padding: 10px;
+}
+
+#box {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+    background: #ecf0f1;
+}
+
+.msg {
+    margin: 5px 0;
+    padding: 8px;
+    border-radius: 8px;
+    max-width: 20%;
+}
+
+.me {
+    background: #3498db;
+    color: white;
+    margin-left: auto;
+}
+
+.other {
+    background: white;
+}
+
+.footer {
+    display: flex;
+}
+
+.footer input {
+    flex: 1;
+    padding: 10px;
+}
+
+.footer button {
+    padding: 10px;
+    background: #2ecc71;
+    color: white;
+    border: none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">Chat Room</div>
+
+<div id="box"></div>
+
+<div class="footer">
+    <input id="msg" placeholder="Type message...">
+    <button onclick="send()">Send</button>
+</div>
+
+<script>
+const convo = "{{conversation_id}}";
+const token = sessionStorage.getItem("token");
+
+const ws = new WebSocket(`ws://127.0.0.1:8000/ws/${convo}?token=${token}`);
+const box = document.getElementById("box");
+
+function getUser() {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.name || payload.email;
+}
+
+const me = getUser();
+
+async function load() {
+    const res = await fetch(`/messages/${convo}`);
+    const data = await res.json();
+
+    data.forEach(m => addMsg(m.sender, m.text));
+}
+
+function addMsg(sender, text) {
+    const div = document.createElement("div");
+    div.classList.add("msg");
+
+    if (sender === me) {
+        div.classList.add("me");
+    } else {
+        div.classList.add("other");
+    }
+
+    div.innerHTML = `<b>${sender}</b><br>${text}`;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+}
+
+load();
+
+ws.onmessage = (e) => {
+    const [sender, ...rest] = e.data.split(": ");
+    addMsg(sender, rest.join(": "));
+};
+
+function send() {
+    if (!msg.value) return;
+    ws.send(msg.value);
+    msg.value = "";
+}
+</script>
+
+</body>
+</html>
+
+<!-- <!DOCTYPE html>
+<html>
+<body>
+
+<h3>Chat</h3>
+
+<div id="box" style="height:300px; overflow:auto; border:1px solid black;"></div>
+
+<input id="msg">
+<button onclick="send()">Send</button>
+
+<script>
+const convo = "{{conversation_id}}";
+const token = sessionStorage.getItem("token");
+
+const ws = new WebSocket(`ws://127.0.0.1:8000/ws/${convo}?token=${token}`);
+
+const box = document.getElementById("box");
+
+async function load() {
+    const res = await fetch(`/messages/${convo}`);
+    const data = await res.json();
+
+    data.forEach(m => {
+        box.innerHTML += `<p><b>${m.sender}</b>: ${m.text}</p>`;
+    });
+}
+
+load();
+
+ws.onmessage = (e) => {
+    box.innerHTML += `<p>${e.data}</p>`;
+};
+
+function send() {
+    const input = document.getElementById("msg");
+    if (!input.value) return;
+
+    ws.send(input.value);
+    input.value = "";
+}
+</script>
+
+</body>
+</html> -->
+
+
+<!-- <!DOCTYPE html>
+<html>
+<head>
+    <title>Chat</title>
+</head>
+<body>
+
+<h3>Chat</h3>
+
+<div id="box" style="height:300px; overflow:auto; border:1px solid black;"></div>
+
+<input id="msg" placeholder="Type message">
+<button onclick="send()">Send</button>
+
+<script>
+const convo = "{{conversation_id}}";
+const user = "{{user_id}}";
+
+const ws = new WebSocket(`ws://127.0.0.1:8000/ws/${convo}/${user}`);
+
+const box = document.getElementById("box");
+
+// load old messages
+async function load() {
+    const res = await fetch(`/messages/${convo}`);
+    const data = await res.json();
+
+    data.forEach(m => {
+        box.innerHTML += `<p><b>${m.sender}</b>: ${m.text}</p>`;
+    });
+}
+load();
+
+// receive messages
+ws.onmessage = (event) => {
+    box.innerHTML += `<p>${event.data}</p>`;
+};
+
+// send message
+function send() {
+    const input = document.getElementById("msg");
+
+    if (input.value.trim() === "") return;
+
+    ws.send(input.value);
+    input.value = "";
+}
+</script>
+
+</body>
+</html> -->

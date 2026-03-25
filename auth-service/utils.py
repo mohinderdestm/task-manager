@@ -67,25 +67,3 @@ def verify_token(token: str):
     except Exception:
         return None
     
-
-
-
-
-
-# def verify_token(token:str):
-#    try:
-#       payload = jwt.decode(
-#          token,
-#          SECRET_KEY,
-#          algorithms=[ALGORITHM]
-#       )
-#       return payload
-#    except jwt.ExpiredSignatureError:
-#       raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED , detail=" Token expired")
-   
-#    except PyJWTError:
-#       raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED , detail="Invalid token")
-
-
-#payload - data inside token(user id,email)
-#encode()- coverts data into JWT string 

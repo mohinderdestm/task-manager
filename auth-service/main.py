@@ -7,11 +7,21 @@ from models import User,RefreshRequest,UserLogin
 from utils import create_access_token, verify_token, hash_password, create_refresh_token , verify_password
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import Depends
+from bson import ObjectId
 
-# test branch
 app = FastAPI()
 
 PORT = int(os.getenv("PORT", 8000))
+
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 security = HTTPBearer()
 
@@ -127,6 +137,28 @@ async def refresh_token(request:RefreshRequest):
         "access_token": new_token,
         "issued_at": issued_at,
         "expires_at": expire
+    }
+
+@app.get("/users")
+async def get_users():
+    users = []
+    async for u in collection.find({}, {"_id": 1, "email": 1}):
+        users.append({
+            "id": str(u["_id"]),
+            "name": u["email"]   # using email as name
+        })
+    return users
+
+@app.get("/users/{user_id}")
+async def get_user(user_id: str):
+    user = await collection.find_one({"_id": ObjectId(user_id)})
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {
+        "id": str(user["_id"]),
+        "name": user["email"]
     }
 
 @app.post("/auth/logout")

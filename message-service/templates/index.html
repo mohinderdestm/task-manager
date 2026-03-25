@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body {
+    font-family: Arial;
+    display: flex;
+    height: 100vh;
+    margin: 0;
+}
+
+.sidebar {
+    width: 300px;
+    background: #2c3e50;
+    color: white;
+    padding: 15px;
+}
+
+.sidebar input {
+    width: 100%;
+    padding: 8px;
+    margin: 5px 0;
+}
+
+.sidebar button {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    background: #3498db;
+    border: none;
+    color: white;
+}
+
+.chat-list {
+    background: #ecf0f1;
+    flex: 1;
+    padding: 10px;
+}
+
+.chat-item {
+    background: white;
+    padding: 10px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.chat-item:hover {
+    background: #dfe6e9;
+}
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+<h3>New Chat</h3>
+
+<input id="user" placeholder="User email">
+<button onclick="create()">Start Chat</button>
+
+<h3>Create Group</h3>
+<input id="group_name" placeholder="Group Name">
+<input id="members" placeholder="Emails comma separated">
+<button onclick="createGroup()">Create Group</button>
+</div>
+
+<div class="chat-list">
+<h3>My Chats</h3>
+<div id="chats"></div>
+</div>
+
+<script>
+// SAME JS (only UI improved)
+async function create() {
+    const res = await fetch("/create-chat", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + sessionStorage.getItem("token")
+        },
+        body: JSON.stringify({
+            other_user: user.value
+        })
+    });
+
+    const data = await res.json();
+
+    if (data.conversation_id) {
+        window.location.href = `/chat/${data.conversation_id}`;
+    }
+}
+
+async function createGroup() {
+    const members = document.getElementById("members").value.split(",");
+
+    const res = await fetch("/create-group", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + sessionStorage.getItem("token")
+        },
+        body: JSON.stringify({
+            group_name: group_name.value,
+            members: members
+        })
+    });
+
+    const data = await res.json();
+
+    if (data.conversation_id) {
+        window.location.href = `/chat/${data.conversation_id}`;
+    }
+}
+
+async function loadChats() {
+    const res = await fetch("/my-chats", {
+        headers: {
+            "Authorization": "Bearer " + sessionStorage.getItem("token")
+        }
+    });
+
+    const data = await res.json();
+    const box = document.getElementById("chats");
+    box.innerHTML = "";
+
+    data.forEach(chat => {
+        let name;
+        if (chat.is_group) {
+            name = chat.group_name || "Group";
+        } else {
+            const myEmail = getUserEmail();
+            name = chat.participants.find(p => p !== myEmail);
+        }
+
+        box.innerHTML += `
+            <div class="chat-item" onclick="openChat('${chat.conversation_id}')">
+                ${name}
+            </div>`;
+    });
+}
+
+function openChat(id) {
+    window.location.href = `/chat/${id}`;
+}
+
+function getUserEmail() {
+    const token = sessionStorage.getItem("token");
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.email;
+}
+
+loadChats();
+</script>
+
+</body>
+</html>
+
+<!-- <!DOCTYPE html>
+<html>
+<body>
+
+<h2>Start Chat</h2>
+
+<input id="user" placeholder="Enter email to chat with">
+<button onclick="create()">Start Chat</button>
+
+<input id="group_name" placeholder="Group Name">
+<input id="members" placeholder="Emails (comma separated)">
+
+<button onclick="createGroup()">Create Group</button>
+
+<h3>My Chats</h3>
+<div id="chats"></div>
+
+<script>
+async function create() {
+    const res = await fetch("/create-chat", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + sessionStorage.getItem("token")
+        },
+        body: JSON.stringify({
+            other_user: document.getElementById("user").value
+        })
+    });
+
+    const data = await res.json();
+
+    if (data.conversation_id) {
+        window.location.href = `/chat/${data.conversation_id}`;
+    } else {
+        alert("Error creating chat");
+    }
+}
+async function createGroup() {
+    const members = document.getElementById("members").value.split(",");
+
+    const res = await fetch("/create-group", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + sessionStorage.getItem("token")
+        },
+        body: JSON.stringify({
+            group_name: document.getElementById("group_name").value,
+            members: members
+        })
+    });
+
+    const data = await res.json();
+
+    if (data.conversation_id) {
+        window.location.href = `/chat/${data.conversation_id}`;
+    } else {
+        alert("Error creating group");
+    }
+}
+async function loadChats() {
+    const res = await fetch("/my-chats", {
+        headers: {
+            "Authorization": "Bearer " + sessionStorage.getItem("token")
+        }
+    });
+
+    const data = await res.json();
+
+    const box = document.getElementById("chats");
+    box.innerHTML = "";
+
+    data.forEach(chat => {
+
+        let name;
+
+        if (chat.is_group) {
+            name = chat.group_name || "Unnamed Group";
+        } else {
+            const myEmail = getUserEmail();
+            name = chat.participants.find(p => p !== myEmail);
+        }
+
+        box.innerHTML += `
+            <div 
+                onclick="openChat('${chat.conversation_id}')"
+                style="border:1px solid black; padding:8px; margin:5px; cursor:pointer;">
+                ${name}
+            </div>
+        `;
+    });
+}
+
+function openChat(id) {
+    window.location.href = `/chat/${id}`;
+}
+
+// decode email from token
+function getUserEmail() {
+    const token = sessionStorage.getItem("token");
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.email;
+}
+
+// 🔥 CALL THIS ON PAGE LOAD
+loadChats();
+</script>
+
+</body>
+</html> -->
+
+
+<!-- <!DOCTYPE html>
+<html>
+<head>
+    <title>Start Chat</title>
+</head>
+<body>
+
+<h2>Create Chat</h2>
+
+<input id="user1" placeholder="User 1">
+<input id="user2" placeholder="User 2">
+<button onclick="startChat()">Start</button>
+
+<script>
+async function startChat() {
+    const user1 = document.getElementById("user1").value;
+    const user2 = document.getElementById("user2").value;
+
+    const res = await fetch("/create-chat", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({user1, user2})
+    });
+
+    const data = await res.json();
+
+    // open chat as user1
+    window.location.href = `/chat/${data.conversation_id}/${user1}`;
+}
+</script>
+
+</body>
+</html> -->

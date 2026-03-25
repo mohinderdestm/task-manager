@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body {
+    font-family: Arial;
+    background: #f4f6f8;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+.card {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    width: 300px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+}
+button {
+    width: 100%;
+    padding: 10px;
+    background: #2196F3;
+    color: white;
+    border: none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+<h2>Signup</h2>
+
+<input id="name" placeholder="Name">
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+
+<button onclick="signup()">Create Account</button>
+
+<p style="text-align:center;"><a href="/">Back to Login</a></p>
+</div>
+
+<script>
+async function signup() {
+    const res = await fetch("/signup", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            name: name.value,
+            email: email.value,
+            password: password.value
+        })
+    });
+
+    const data = await res.json();
+
+    if (data.message) {
+        alert("Account created!");
+        window.location.href = "/";
+    } else {
+        alert(data.error);
+    }
+}
+</script>
+
+</body>
+</html>
+
+<!-- <!DOCTYPE html>
+<html>
+<body>
+
+<h2>Signup</h2>
+
+<input id="name" placeholder="Name">
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+
+<button onclick="signup()">Create Account</button>
+
+<p>Already have account? <a href="/">Login</a></p>
+
+<script>
+async function signup() {
+    const res = await fetch("/signup", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            name: document.getElementById("name").value,   // ✅ ADD THIS
+            email: document.getElementById("email").value,
+            password: document.getElementById("password").value
+        })
+    });
+
+    const data = await res.json();
+
+    if (data.message) {
+        alert("Account created!");
+        window.location.href = "/";
+    } else {
+        alert(data.error);
+    }
+}
+</script>
+
+</body>
+</html> -->
