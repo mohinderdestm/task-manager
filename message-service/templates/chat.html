@@ -10,24 +10,13 @@
 
     /* ── Login ── */
     #login-screen { display: flex; align-items: center; justify-content: center; height: 100vh; }
-    .login-box {
-      background: #fff; padding: 36px 32px; border-radius: 10px;
-      box-shadow: 0 2px 12px rgba(0,0,0,.12); width: 360px;
-    }
+    .login-box { background: #fff; padding: 36px 32px; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,.12); width: 360px; }
     .login-box h2 { font-size: 22px; color: #1a1a1a; margin-bottom: 4px; }
     .login-box p  { font-size: 13px; color: #888; margin-bottom: 24px; }
     .login-box label { font-size: 12px; font-weight: 600; color: #555; display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: .04em; }
-    .login-box input {
-      width: 100%; border: 1px solid #ddd; border-radius: 6px;
-      padding: 10px 12px; font-size: 14px; font-family: inherit;
-      margin-bottom: 16px; transition: border-color .2s;
-    }
+    .login-box input { width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 10px 12px; font-size: 14px; font-family: inherit; margin-bottom: 16px; }
     .login-box input:focus { outline: none; border-color: #0084ff; }
-    .login-box button {
-      width: 100%; background: #0084ff; color: #fff; border: none;
-      border-radius: 6px; padding: 11px; font-size: 15px; cursor: pointer;
-      font-weight: 600; transition: background .2s;
-    }
+    .login-box button { width: 100%; background: #0084ff; color: #fff; border: none; border-radius: 6px; padding: 11px; font-size: 15px; cursor: pointer; font-weight: 600; }
     .login-box button:hover { background: #006ee0; }
     .login-box button:disabled { background: #90c3ff; cursor: default; }
     .login-error { color: #d93025; font-size: 13px; margin-top: 10px; text-align: center; min-height: 18px; }
@@ -37,20 +26,12 @@
     #app.visible { display: flex; }
 
     /* ── Header ── */
-    .header {
-      background: #fff; border-bottom: 1px solid #ddd;
-      padding: 0 16px; height: 52px;
-      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
-    }
-    .header-left { display: flex; align-items: center; gap: 10px; }
-    .header-left span { font-weight: bold; font-size: 16px; color: #333; }
+    .header { background: #fff; border-bottom: 1px solid #ddd; padding: 0 16px; height: 52px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .header span { font-weight: bold; font-size: 16px; color: #333; }
     .header-right { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #555; }
     .ws-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; }
     .ws-dot.on { background: #42b72a; }
-    .logout-btn {
-      font-size: 12px; padding: 5px 10px; border: 1px solid #ddd;
-      background: #fff; border-radius: 5px; cursor: pointer; color: #555;
-    }
+    .logout-btn { font-size: 12px; padding: 5px 10px; border: 1px solid #ddd; background: #fff; border-radius: 5px; cursor: pointer; color: #555; }
     .logout-btn:hover { background: #f5f5f5; }
 
     /* ── Body ── */
@@ -59,16 +40,10 @@
     /* ── Sidebar ── */
     .sidebar { width: 260px; background: #fff; border-right: 1px solid #ddd; display: flex; flex-direction: column; flex-shrink: 0; }
     .sidebar-top { padding: 10px; border-bottom: 1px solid #eee; display: flex; gap: 6px; }
-    .sidebar-top button {
-      flex: 1; padding: 7px; border: 1px solid #ddd; background: #fff;
-      border-radius: 6px; font-size: 12px; cursor: pointer; color: #444;
-    }
+    .sidebar-top button { flex: 1; padding: 7px; border: 1px solid #ddd; background: #fff; border-radius: 6px; font-size: 12px; cursor: pointer; color: #444; }
     .sidebar-top button:hover { background: #f5f5f5; }
     .conv-list { flex: 1; overflow-y: auto; }
-    .conv-item {
-      padding: 12px 14px; cursor: pointer; border-bottom: 1px solid #f0f0f0;
-      display: flex; flex-direction: column; gap: 3px;
-    }
+    .conv-item { padding: 12px 14px; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; flex-direction: column; gap: 3px; }
     .conv-item:hover { background: #f5f5f5; }
     .conv-item.active { background: #e7f3ff; }
     .conv-name { font-size: 14px; font-weight: 600; color: #222; }
@@ -76,50 +51,70 @@
 
     /* ── Chat ── */
     .chat { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-    .chat-header {
-      padding: 0 16px; height: 52px; background: #fff;
-      border-bottom: 1px solid #ddd; display: flex; align-items: center;
-      justify-content: space-between; flex-shrink: 0;
-    }
-    .chat-header span { font-weight: bold; font-size: 15px; color: #333; }
-    .chat-header button {
-      font-size: 12px; padding: 5px 10px; border: 1px solid #ddd;
-      background: #fff; border-radius: 5px; cursor: pointer; color: #444;
-    }
-    .chat-header button:hover { background: #f5f5f5; }
-    .messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
-    .msg { display: flex; flex-direction: column; max-width: 60%; }
+    .chat-header { padding: 0 16px; height: 52px; background: #fff; border-bottom: 1px solid #ddd; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .chat-header-left { display: flex; align-items: center; gap: 10px; }
+    .chat-header-left span { font-weight: bold; font-size: 15px; color: #333; }
+    .chat-header-sub { font-size: 12px; color: #888; }
+    .chat-header-actions { display: flex; gap: 6px; }
+    .chat-header-actions button { font-size: 12px; padding: 5px 10px; border: 1px solid #ddd; background: #fff; border-radius: 5px; cursor: pointer; color: #444; }
+    .chat-header-actions button:hover { background: #f5f5f5; }
+
+    .messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+
+    /* ── Message bubbles ── */
+    .msg { display: flex; flex-direction: column; max-width: 65%; position: relative; }
     .msg.own   { align-self: flex-end;   align-items: flex-end; }
     .msg.other { align-self: flex-start; align-items: flex-start; }
     .msg-sender { font-size: 11px; color: #888; margin-bottom: 2px; }
-    .msg-bubble { padding: 9px 13px; border-radius: 16px; font-size: 14px; line-height: 1.4; word-wrap: break-word; }
+    .msg-bubble { padding: 9px 13px; border-radius: 16px; font-size: 14px; line-height: 1.4; word-wrap: break-word; position: relative; }
     .msg.own   .msg-bubble { background: #0084ff; color: #fff; border-bottom-right-radius: 4px; }
     .msg.other .msg-bubble { background: #fff; border: 1px solid #ddd; color: #222; border-bottom-left-radius: 4px; }
     .msg-time { font-size: 10px; color: #aaa; margin-top: 2px; }
+
+    /* Delete button on hover */
+    .msg-actions { display: none; position: absolute; top: -6px; right: 0; gap: 4px; }
+    .msg.own   .msg-actions { left: -60px; }
+    .msg.other .msg-actions { right: -60px; }
+    .msg:hover .msg-actions { display: flex; }
+    .del-btn { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; color: #d93025; }
+    .del-btn:hover { background: #fff0f0; }
+
+    /* ── Image message ── */
+    .msg-image { max-width: 240px; max-height: 200px; border-radius: 10px; cursor: pointer; display: block; object-fit: cover; }
+    .msg.own  .msg-bubble.image-bubble { background: transparent; padding: 0; border: none; }
+    .msg.other .msg-bubble.image-bubble { background: transparent; padding: 0; border: none; }
+
+    /* ── Image lightbox ── */
+    #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: none; align-items: center; justify-content: center; z-index: 100; cursor: zoom-out; }
+    #lightbox.open { display: flex; }
+    #lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+
     .system-msg { text-align: center; font-size: 12px; color: #aaa; padding: 2px 0; }
     .typing { padding: 0 16px 8px; font-size: 12px; color: #888; min-height: 20px; }
-    .input-row {
-      padding: 10px 12px; background: #fff; border-top: 1px solid #ddd;
-      display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;
-    }
-    .input-row textarea {
-      flex: 1; border: 1px solid #ddd; border-radius: 20px;
-      padding: 9px 14px; font-size: 14px; font-family: inherit;
-      resize: none; max-height: 100px; min-height: 38px; line-height: 1.4;
-    }
+
+    /* ── Input area ── */
+    .input-row { padding: 10px 12px; background: #fff; border-top: 1px solid #ddd; display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0; }
+    .input-row textarea { flex: 1; border: 1px solid #ddd; border-radius: 20px; padding: 9px 14px; font-size: 14px; font-family: inherit; resize: none; max-height: 100px; min-height: 38px; line-height: 1.4; }
     .input-row textarea:focus { outline: none; border-color: #0084ff; }
-    .input-row button {
-      background: #0084ff; color: #fff; border: none;
-      border-radius: 50%; width: 38px; height: 38px; font-size: 16px;
-      cursor: pointer; flex-shrink: 0;
-    }
-    .input-row button:hover { background: #006ee0; }
+    .send-btn { background: #0084ff; color: #fff; border: none; border-radius: 50%; width: 38px; height: 38px; font-size: 16px; cursor: pointer; flex-shrink: 0; }
+    .send-btn:hover { background: #006ee0; }
+    .img-btn { background: #f0f2f5; color: #555; border: 1px solid #ddd; border-radius: 50%; width: 38px; height: 38px; font-size: 16px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .img-btn:hover { background: #e4e6eb; }
+    #file-input { display: none; }
+
+    /* Image preview before sending */
+    .img-preview-bar { padding: 8px 12px 0; background: #fff; display: none; align-items: center; gap: 10px; }
+    .img-preview-bar.show { display: flex; }
+    .img-preview-bar img { height: 60px; border-radius: 6px; border: 1px solid #ddd; }
+    .img-preview-bar span { font-size: 12px; color: #555; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .img-preview-bar button { background: none; border: none; color: #d93025; cursor: pointer; font-size: 18px; line-height: 1; }
+
     .placeholder { flex: 1; display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 14px; }
 
-    /* ── Modal ── */
+    /* ── Modals ── */
     .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: none; align-items: center; justify-content: center; z-index: 10; }
     .overlay.open { display: flex; }
-    .modal { background: #fff; border-radius: 8px; padding: 24px; width: 360px; box-shadow: 0 4px 20px rgba(0,0,0,.15); }
+    .modal { background: #fff; border-radius: 8px; padding: 24px; width: 380px; box-shadow: 0 4px 20px rgba(0,0,0,.15); max-height: 90vh; overflow-y: auto; }
     .modal h3 { margin-bottom: 16px; font-size: 16px; color: #333; }
     .modal label { font-size: 13px; color: #555; display: block; margin-bottom: 4px; }
     .modal input { width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 8px 10px; font-size: 14px; margin-bottom: 12px; font-family: inherit; }
@@ -131,51 +126,49 @@
     .modal-btns .cancel { background: #fff; color: #444; }
     .modal-btns .cancel:hover { background: #f5f5f5; }
 
+    /* Members list inside modal */
+    .member-list { margin-bottom: 16px; }
+    .member-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+    .member-row:last-child { border-bottom: none; }
+    .member-row span { color: #333; }
+    .remove-btn { background: none; border: 1px solid #ddd; border-radius: 5px; padding: 3px 8px; font-size: 12px; color: #d93025; cursor: pointer; }
+    .remove-btn:hover { background: #fff0f0; border-color: #d93025; }
+    .creator-badge { font-size: 11px; color: #0084ff; margin-left: 6px; }
+
     /* ── Toast ── */
-    #toast {
-      position: fixed; bottom: 20px; right: 20px; background: #333; color: #fff;
-      padding: 10px 16px; border-radius: 6px; font-size: 13px;
-      opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20;
-    }
+    #toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: #fff; padding: 10px 16px; border-radius: 6px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 200; }
     #toast.show { opacity: 1; }
     #toast.err  { background: #d93025; }
   </style>
 </head>
 <body>
 
-<!-- ── LOGIN ── -->
+<!-- LOGIN -->
 <div id="login-screen">
   <div class="login-box">
     <h2>💬 Messages</h2>
     <p>Sign in to your workspace</p>
-
     <label>Email</label>
     <input id="login-email" type="email" placeholder="you@company.com" />
-
     <label>Password</label>
     <input id="login-password" type="password" placeholder="••••••••"
       onkeydown="if(event.key==='Enter') doLogin()" />
-
     <button id="login-btn" onclick="doLogin()">Sign In</button>
     <div class="login-error" id="login-error"></div>
   </div>
 </div>
 
-<!-- ── APP ── -->
+<!-- APP -->
 <div id="app">
   <div class="header">
-    <div class="header-left">
-      <span>💬 Messages</span>
-    </div>
+    <span>💬 Messages</span>
     <div class="header-right">
       <div class="ws-dot" id="ws-dot"></div>
       <span id="me-label"></span>
       <button class="logout-btn" onclick="doLogout()">Logout</button>
     </div>
   </div>
-
   <div class="body">
-    <!-- Sidebar -->
     <div class="sidebar">
       <div class="sidebar-top">
         <button onclick="openOverlay('dm-overlay')">+ Direct</button>
@@ -183,19 +176,26 @@
       </div>
       <div class="conv-list" id="conv-list"></div>
     </div>
-    <!-- Chat -->
     <div class="chat" id="chat-panel">
       <div class="placeholder">Select a conversation to start chatting</div>
     </div>
   </div>
 </div>
 
+<!-- Image lightbox -->
+<div id="lightbox" onclick="document.getElementById('lightbox').classList.remove('open')">
+  <img id="lightbox-img" src="" alt="full image" />
+</div>
+
+<!-- Hidden file input -->
+<input type="file" id="file-input" accept="image/*" onchange="onFileSelected(event)" />
+
 <!-- New DM -->
 <div class="overlay" id="dm-overlay">
   <div class="modal">
     <h3>New Direct Message</h3>
     <label>User ID</label>
-    <input id="dm-id" placeholder="Their user_id from auth-service" />
+    <input id="dm-id" placeholder="Their user_id" />
     <label>Name</label>
     <input id="dm-name" placeholder="Their display name" />
     <div class="modal-btns">
@@ -222,17 +222,18 @@
   </div>
 </div>
 
-<!-- Add Member -->
-<div class="overlay" id="add-overlay">
+<!-- Group Info (members list + add member) -->
+<div class="overlay" id="info-overlay">
   <div class="modal">
-    <h3>Add Member</h3>
-    <label>User ID</label>
+    <h3 id="info-title">Group Info</h3>
+    <div class="member-list" id="member-list"></div>
+    <label>Add Member — User ID</label>
     <input id="add-id" placeholder="user_id" />
     <label>Name</label>
     <input id="add-name" placeholder="Display name" />
     <div class="modal-btns">
-      <button class="cancel" onclick="closeOverlay('add-overlay')">Cancel</button>
-      <button class="primary" onclick="addMember()">Add</button>
+      <button class="cancel" onclick="closeOverlay('info-overlay')">Close</button>
+      <button class="primary" onclick="addMember()">Add Member</button>
     </div>
   </div>
 </div>
@@ -240,81 +241,56 @@
 <div id="toast"></div>
 
 <script>
-  // ── CONFIG (injected by FastAPI template) ──────────────────
   const AUTH_URL = "http://127.0.0.1:3001";
   const MSG_URL  = "{{ api_url }}";
   const WS_URL   = "{{ ws_url }}";
 
-  // ── STATE ──────────────────────────────────────────────────
-  let token         = localStorage.getItem("msg_token") || null;
-  let me            = JSON.parse(localStorage.getItem("msg_me") || "null");
-  let ws            = null;
-  let activeConvId  = null;
-  let convs         = [];
-  let typingTimer   = null;
-  let typingSent    = false;
+  let token        = localStorage.getItem("msg_token") || null;
+  let me           = JSON.parse(localStorage.getItem("msg_me") || "null");
+  let ws           = null;
+  let activeConvId = null;
+  let convs        = [];
+  let typingTimer  = null;
+  let typingSent   = false;
+  let pendingImage = null;   // { base64, name, mime }
 
-  // ── INIT ───────────────────────────────────────────────────
   if (token && me) showApp();
 
-  // ── LOGIN ──────────────────────────────────────────────────
+  // ── Login ──────────────────────────────────────────────────
   async function doLogin() {
     const email    = document.getElementById("login-email").value.trim();
     const password = document.getElementById("login-password").value;
     const errEl    = document.getElementById("login-error");
     const btn      = document.getElementById("login-btn");
-
     errEl.textContent = "";
     if (!email || !password) { errEl.textContent = "Enter email and password."; return; }
-
-    btn.disabled    = true;
-    btn.textContent = "Signing in…";
-
+    btn.disabled = true; btn.textContent = "Signing in…";
     try {
-      const res = await fetch(`${AUTH_URL}/auth/login`, {
+      const res  = await fetch(`${AUTH_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        errEl.textContent = data.detail || "Login failed.";
-        return;
-      }
-
-      // auth-service returns access_token (may be tuple bug on Mohinder's side)
+      if (!res.ok) { errEl.textContent = data.detail || "Login failed."; return; }
       const raw = data.access_token;
       token = Array.isArray(raw) ? raw[0] : raw;
-
-      if (!token) { errEl.textContent = "No token received from auth-service."; return; }
-
-      // Decode JWT to get user info
-      const payload = decodeJWT(token);
-      me = {
-        user_id: payload.user_id || payload.sub || data.user?.id || "",
-        name:    payload.name    || email.split("@")[0],
-        email:   payload.email   || email,
-        role:    payload.role    || "employee"
-      };
-
+      if (!token) { errEl.textContent = "No token received."; return; }
+      const p = decodeJWT(token);
+      me = { user_id: p.user_id || p.sub || data.user?.id || "", name: p.name || email.split("@")[0], email: p.email || email, role: p.role || "employee" };
       localStorage.setItem("msg_token", token);
-      localStorage.setItem("msg_me",    JSON.stringify(me));
-
+      localStorage.setItem("msg_me", JSON.stringify(me));
       showApp();
-    } catch (e) {
-      errEl.textContent = "Could not reach auth-service. Is it running on port 3001?";
+    } catch(e) {
+      errEl.textContent = "Could not reach auth-service (port 3001).";
     } finally {
-      btn.disabled    = false;
-      btn.textContent = "Sign In";
+      btn.disabled = false; btn.textContent = "Sign In";
     }
   }
 
   function doLogout() {
     if (ws) ws.close();
-    localStorage.removeItem("msg_token");
-    localStorage.removeItem("msg_me");
+    localStorage.removeItem("msg_token"); localStorage.removeItem("msg_me");
     token = null; me = null;
     document.getElementById("app").classList.remove("visible");
     document.getElementById("login-screen").style.display = "flex";
@@ -325,17 +301,15 @@
     document.getElementById("login-screen").style.display = "none";
     document.getElementById("app").classList.add("visible");
     document.getElementById("me-label").textContent = me.name + " (" + me.role + ")";
-    loadConvs();
-    connectWS();
+    loadConvs(); connectWS();
   }
 
-  // ── JWT decode (no verify — just read claims) ───────────────
   function decodeJWT(t) {
     try { return JSON.parse(atob(t.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))); }
     catch { return {}; }
   }
 
-  // ── API ─────────────────────────────────────────────────────
+  // ── API ────────────────────────────────────────────────────
   async function api(method, path, body) {
     const r = await fetch(MSG_URL + path, {
       method,
@@ -350,7 +324,7 @@
     return r.json();
   }
 
-  // ── Conversations ────────────────────────────────────────────
+  // ── Conversations ──────────────────────────────────────────
   async function loadConvs() {
     try {
       const d = await api("GET", "/messaging/conversations");
@@ -362,16 +336,12 @@
   function convName(c) {
     if (c.conversation_type === "group") return c.name || "Group";
     const i = c.members.indexOf(me.user_id);
-    const other = i === 0 ? 1 : 0;
-    return c.member_names[other] || c.members[other] || "Direct";
+    return c.member_names[i === 0 ? 1 : 0] || "Direct";
   }
 
   function renderSidebar() {
     const el = document.getElementById("conv-list");
-    if (!convs.length) {
-      el.innerHTML = `<p style="padding:14px;color:#aaa;font-size:13px">No conversations yet.<br>Click + Direct or + Group.</p>`;
-      return;
-    }
+    if (!convs.length) { el.innerHTML = `<p style="padding:14px;color:#aaa;font-size:13px">No conversations yet.</p>`; return; }
     el.innerHTML = convs.map(c => `
       <div class="conv-item ${activeConvId === c._id ? "active" : ""}" onclick="openConv('${c._id}')">
         <div class="conv-name">${esc(convName(c))} ${c.conversation_type === "group" ? "👥" : ""}</div>
@@ -379,47 +349,58 @@
       </div>`).join("");
   }
 
+  function activeConv() { return convs.find(c => c._id === activeConvId); }
+
   async function openConv(id) {
     activeConvId = id;
     renderSidebar();
     renderChatPanel();
-    if (ws && ws.readyState === 1)
-      ws.send(JSON.stringify({ type: "read", conversation_id: id }));
+    // REST read receipt
+    api("PATCH", `/messaging/conversations/${id}/read`).catch(() => {});
     try {
       const d = await api("GET", `/messaging/conversations/${id}/messages?limit=60`);
       renderMessages(d.messages || []);
     } catch(e) { toast(e.message, true); }
   }
 
-  // ── Chat panel ───────────────────────────────────────────────
-  function activeConv() { return convs.find(c => c._id === activeConvId); }
-
+  // ── Chat panel ─────────────────────────────────────────────
   function renderChatPanel() {
     const c = activeConv();
     if (!c) return;
     const isGroup = c.conversation_type === "group";
     document.getElementById("chat-panel").innerHTML = `
       <div class="chat-header">
-        <span>${esc(convName(c))} ${isGroup ? "👥" : ""}</span>
-        ${isGroup ? `<button onclick="openOverlay('add-overlay')">+ Add Member</button>` : ""}
+        <div class="chat-header-left">
+          <div>
+            <span>${esc(convName(c))} ${isGroup ? "👥" : ""}</span>
+            ${isGroup ? `<div class="chat-header-sub">${c.members.length} members</div>` : ""}
+          </div>
+        </div>
+        <div class="chat-header-actions">
+          ${isGroup ? `<button onclick="openGroupInfo()">👥 Members</button>` : ""}
+        </div>
       </div>
       <div class="messages" id="msgs"></div>
       <div class="typing" id="typing"></div>
+      <div class="img-preview-bar" id="img-preview-bar">
+        <img id="img-preview-thumb" src="" alt="preview" />
+        <span id="img-preview-name"></span>
+        <button onclick="clearPendingImage()" title="Remove">✕</button>
+      </div>
       <div class="input-row">
+        <button class="img-btn" title="Send image" onclick="document.getElementById('file-input').click()">🖼</button>
         <textarea id="msg-input" placeholder="Type a message… (Enter to send)"
           onkeydown="handleKey(event)" oninput="sendTyping()"></textarea>
-        <button onclick="sendMsg()">➤</button>
+        <button class="send-btn" onclick="sendMsg()">➤</button>
       </div>`;
   }
 
+  // ── Messages rendering ─────────────────────────────────────
   function renderMessages(msgs) {
     const el = document.getElementById("msgs");
     if (!el) return;
-    if (!msgs.length) {
-      el.innerHTML = `<p style="color:#aaa;font-size:13px;text-align:center;margin-top:20px">No messages yet. Say hello!</p>`;
-      return;
-    }
-    el.innerHTML = msgs.map(msgHTML).join("");
+    if (!msgs.length) { el.innerHTML = `<p style="color:#aaa;font-size:13px;text-align:center;margin-top:20px">No messages yet. Say hello!</p>`; return; }
+    el.innerHTML = msgs.map(m => msgHTML(m)).join("");
     el.scrollTop = el.scrollHeight;
   }
 
@@ -429,9 +410,23 @@
     const time = new Date(m.created_at || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     const c    = activeConv();
     const showSender = !own && c && c.conversation_type === "group";
-    return `<div class="msg ${own ? "own" : "other"}">
+    const delBtn = own ? `<div class="msg-actions"><button class="del-btn" onclick="deleteMessage('${m._id}', event)" title="Delete">🗑</button></div>` : "";
+
+    let bubbleContent = "";
+    if (m.message_type === "image") {
+      const mime = m.image_mime || "image/jpeg";
+      const src  = `data:${mime};base64,${m.content}`;
+      bubbleContent = `<img class="msg-image" src="${src}" alt="${esc(m.image_name || 'image')}" onclick="openLightbox('${src}')" />`;
+    } else {
+      bubbleContent = esc(m.content);
+    }
+
+    const imageClass = m.message_type === "image" ? " image-bubble" : "";
+
+    return `<div class="msg ${own ? "own" : "other"}" data-msg-id="${m._id || ""}">
+      ${delBtn}
       ${showSender ? `<div class="msg-sender">${esc(m.sender_name)}</div>` : ""}
-      <div class="msg-bubble">${esc(m.content)}</div>
+      <div class="msg-bubble${imageClass}">${bubbleContent}</div>
       <div class="msg-time">${time}</div>
     </div>`;
   }
@@ -445,7 +440,37 @@
     el.scrollTop = el.scrollHeight;
   }
 
-  // ── Send ─────────────────────────────────────────────────────
+  // ── Image handling ─────────────────────────────────────────
+  function onFileSelected(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast("Image must be under 5MB", true); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      const base64  = dataUrl.split(",")[1];
+      pendingImage  = { base64, name: file.name, mime: file.type };
+      document.getElementById("img-preview-thumb").src = dataUrl;
+      document.getElementById("img-preview-name").textContent = file.name;
+      document.getElementById("img-preview-bar").classList.add("show");
+    };
+    reader.readAsDataURL(file);
+    event.target.value = "";
+  }
+
+  function clearPendingImage() {
+    pendingImage = null;
+    document.getElementById("img-preview-bar").classList.remove("show");
+    document.getElementById("img-preview-thumb").src = "";
+    document.getElementById("img-preview-name").textContent = "";
+  }
+
+  function openLightbox(src) {
+    document.getElementById("lightbox-img").src = src;
+    document.getElementById("lightbox").classList.add("open");
+  }
+
+  // ── Send ───────────────────────────────────────────────────
   function handleKey(e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } }
 
   function sendTyping() {
@@ -456,22 +481,95 @@
   }
 
   async function sendMsg() {
+    if (!activeConvId) return;
     const inp = document.getElementById("msg-input");
-    if (!inp || !activeConvId) return;
-    const content = inp.value.trim();
-    if (!content) return;
-    inp.value = "";
-    if (ws && ws.readyState === 1) {
-      ws.send(JSON.stringify({ type: "message", conversation_id: activeConvId, content }));
-    } else {
-      try {
-        await api("POST", `/messaging/conversations/${activeConvId}/messages`, { content });
-        appendMsg({ sender_id: me.user_id, sender_name: me.name, content, created_at: new Date().toISOString(), is_own: true });
-      } catch(e) { toast(e.message, true); }
+
+    // ── Send pending image first ───────────────────────────
+    if (pendingImage) {
+      const img = pendingImage;
+      clearPendingImage();
+      if (ws && ws.readyState === 1) {
+        ws.send(JSON.stringify({
+          type: "image",
+          conversation_id: activeConvId,
+          content: img.base64,
+          image_name: img.name,
+          image_mime: img.mime
+        }));
+      } else {
+        try {
+          await api("POST", `/messaging/conversations/${activeConvId}/messages`, {
+            content: img.base64, message_type: "image", image_name: img.name, image_mime: img.mime
+          });
+          appendMsg({ sender_id: me.user_id, sender_name: me.name, content: img.base64, message_type: "image", image_name: img.name, image_mime: img.mime, created_at: new Date().toISOString(), is_own: true });
+        } catch(e) { toast(e.message, true); }
+      }
+    }
+
+    // ── Send text if present ───────────────────────────────
+    if (inp) {
+      const content = inp.value.trim();
+      if (content) {
+        inp.value = "";
+        if (ws && ws.readyState === 1) {
+          ws.send(JSON.stringify({ type: "message", conversation_id: activeConvId, content }));
+        } else {
+          try {
+            await api("POST", `/messaging/conversations/${activeConvId}/messages`, { content });
+            appendMsg({ sender_id: me.user_id, sender_name: me.name, content, message_type: "text", created_at: new Date().toISOString(), is_own: true });
+          } catch(e) { toast(e.message, true); }
+        }
+      }
     }
   }
 
-  // ── WebSocket ─────────────────────────────────────────────────
+  // ── Delete message ─────────────────────────────────────────
+  async function deleteMessage(msgId, event) {
+    event.stopPropagation();
+    if (!activeConvId || !msgId || msgId === "undefined") return;
+    if (!confirm("Delete this message?")) return;
+    try {
+      await api("DELETE", `/messaging/conversations/${activeConvId}/messages/${msgId}`);
+      // Remove from DOM immediately
+      const el = document.querySelector(`[data-msg-id="${msgId}"]`);
+      if (el) el.remove();
+    } catch(e) { toast(e.message, true); }
+  }
+
+  // ── Group info modal ───────────────────────────────────────
+  function openGroupInfo() {
+    const c = activeConv();
+    if (!c) return;
+    document.getElementById("info-title").textContent = `👥 ${c.name || "Group"} — Members`;
+    const isCreator = c.created_by === me.user_id;
+    document.getElementById("member-list").innerHTML = c.members.map((uid, i) => {
+      const name    = c.member_names[i] || uid;
+      const isMe    = uid === me.user_id;
+      const creator = uid === c.created_by;
+      const canRemove = isCreator || isMe;
+      return `<div class="member-row">
+        <span>${esc(name)} ${creator ? '<span class="creator-badge">creator</span>' : ""} ${isMe ? "(you)" : ""}</span>
+        ${canRemove && !creator ? `<button class="remove-btn" onclick="removeMember('${uid}', '${esc(name)}')">Remove</button>` : ""}
+      </div>`;
+    }).join("");
+    openOverlay("info-overlay");
+  }
+
+  async function removeMember(uid, uname) {
+    if (!activeConvId) return;
+    if (!confirm(`Remove ${uname} from the group?`)) return;
+    try {
+      await api("DELETE", `/messaging/conversations/${activeConvId}/members/${uid}`);
+      closeOverlay("info-overlay");
+      toast(`${uname} removed`);
+      await loadConvs();
+      // Refresh active conv data
+      const updated = convs.find(c => c._id === activeConvId);
+      if (updated) renderChatPanel();
+    } catch(e) { toast(e.message, true); }
+  }
+
+  // ── WebSocket ──────────────────────────────────────────────
   function connectWS() {
     ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(token)}`);
     ws.onopen  = () => document.getElementById("ws-dot").classList.add("on");
@@ -479,14 +577,32 @@
     ws.onerror = () => {};
     ws.onmessage = ({ data }) => {
       let m; try { m = JSON.parse(data); } catch { return; }
+
       if (m.type === "message") {
         const c = convs.find(c => c._id === m.conversation_id);
-        if (c) { c.last_message = m.content; renderSidebar(); }
+        if (c) { c.last_message = m.message_type === "image" ? "📷 Image" : m.content; renderSidebar(); }
         if (activeConvId === m.conversation_id) { appendMsg(m); clearTyping(); }
+
+      } else if (m.type === "message_deleted") {
+        if (activeConvId === m.conversation_id) {
+          const el = document.querySelector(`[data-msg-id="${m.message_id}"]`);
+          if (el) el.remove();
+        }
+
       } else if (m.type === "typing") {
         if (activeConvId === m.conversation_id) showTyping(m.user_name);
+
+      } else if (m.type === "member_removed") {
+        // If I was removed, close this conv
+        if (m.user_id === me.user_id && activeConvId === m.conversation_id) {
+          activeConvId = null;
+          document.getElementById("chat-panel").innerHTML = `<div class="placeholder">You were removed from this group.</div>`;
+        }
+        loadConvs();
+
       } else if (m.type === "group_created" || m.type === "member_added") {
         loadConvs();
+
       } else if (m.type === "error") {
         toast(m.detail, true);
       }
@@ -504,7 +620,7 @@
     if (el) el.textContent = "";
   }
 
-  // ── Modals ────────────────────────────────────────────────────
+  // ── Modals ─────────────────────────────────────────────────
   function openOverlay(id)  { document.getElementById(id).classList.add("open"); }
   function closeOverlay(id) { document.getElementById(id).classList.remove("open"); }
 
@@ -515,8 +631,7 @@
     try {
       const d = await api("POST", "/messaging/conversations/direct", { target_user_id: uid, target_user_name: name });
       closeOverlay("dm-overlay");
-      await loadConvs();
-      openConv(d.conversation._id);
+      await loadConvs(); openConv(d.conversation._id);
     } catch(e) { toast(e.message, true); }
   }
 
@@ -528,8 +643,7 @@
     try {
       const d = await api("POST", "/messaging/conversations/group", { name, member_ids: ids, member_names: names });
       closeOverlay("grp-overlay");
-      await loadConvs();
-      openConv(d.conversation._id);
+      await loadConvs(); openConv(d.conversation._id);
     } catch(e) { toast(e.message, true); }
   }
 
@@ -540,13 +654,13 @@
     if (!uid || !uname) { toast("Fill all fields", true); return; }
     try {
       await api("POST", `/messaging/conversations/${activeConvId}/members`, { user_id: uid, user_name: uname });
-      closeOverlay("add-overlay");
+      closeOverlay("info-overlay");
       toast(`${uname} added ✓`);
-      loadConvs();
+      await loadConvs();
     } catch(e) { toast(e.message, true); }
   }
 
-  // ── Helpers ───────────────────────────────────────────────────
+  // ── Helpers ────────────────────────────────────────────────
   let toastT;
   function toast(msg, err = false) {
     const el = document.getElementById("toast");

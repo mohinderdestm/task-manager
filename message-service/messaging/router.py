@@ -19,10 +19,9 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────────
+# ── Helpers ────────────────────────────────────────────────────
 
 def _ser(doc: dict) -> dict:
-    # Convert ObjectId to string for JSON serialization
     if doc and "_id" in doc:
         doc["_id"] = str(doc["_id"])
     return doc
@@ -38,7 +37,7 @@ async def _get_conversation_or_404(conv_id: str) -> dict:
     return conv
 
 
-# ── Conversations ──────────────────────────────────────────────────────────────
+# ── Conversations ──────────────────────────────────────────────
 
 @router.post("/conversations/direct", status_code=201)
 async def create_direct_conversation(
@@ -46,7 +45,6 @@ async def create_direct_conversation(
     user: dict = Depends(get_current_user)
 ):
     me = user["user_id"]
-
     existing = await conversations_collection.find_one({
         "conversation_type": ConversationType.DIRECT,
         "members": {"$all": [me, body.target_user_id]}
@@ -71,7 +69,6 @@ async def create_group_conversation(
     user: dict = Depends(get_current_user)
 ):
     me = user["user_id"]
-
     all_members = list(dict.fromkeys([me] + body.member_ids))
     all_names   = list(dict.fromkeys([user.get("name", me)] + body.member_names))
 
@@ -116,7 +113,6 @@ async def add_member(
     user: dict = Depends(get_current_user)
 ):
     conv = await _get_conversation_or_404(conv_id)
-
     if conv["conversation_type"] != ConversationType.GROUP:
         raise HTTPException(status_code=400, detail="Cannot add members to a direct conversation")
     if user["user_id"] not in conv["members"]:
@@ -128,11 +124,9 @@ async def add_member(
         {"_id": ObjectId(conv_id)},
         {"$push": {"members": body.user_id, "member_names": body.user_name}}
     )
-
     payload = {"type": "member_added", "conversation_id": conv_id,
                "user_id": body.user_id, "user_name": body.user_name}
     await manager.broadcast_to_members(conv["members"] + [body.user_id], payload)
-
     return {"message": f"{body.user_name} added to group"}
 
 
@@ -142,7 +136,6 @@ async def remove_member(
     user_id: str,
     user: dict = Depends(get_current_user)
 ):
-    # Only the creator can remove others, but anyone can remove themselves (leave group)
     conv = await _get_conversation_or_404(conv_id)
     me   = user["user_id"]
 
@@ -152,6 +145,8 @@ async def remove_member(
         raise HTTPException(status_code=403, detail="Not a member")
     if me != conv["created_by"] and me != user_id:
         raise HTTPException(status_code=403, detail="Only creator can remove others")
+    if user_id not in conv["members"]:
+        raise HTTPException(status_code=404, detail="User not in conversation")
 
     idx = conv["members"].index(user_id)
     conv["members"].pop(idx)
@@ -162,10 +157,15 @@ async def remove_member(
         {"_id": ObjectId(conv_id)},
         {"$set": {"members": conv["members"], "member_names": conv["member_names"]}}
     )
+
+    await manager.broadcast_to_members(
+        conv["members"] + [user_id],
+        {"type": "member_removed", "conversation_id": conv_id, "user_id": user_id}
+    )
     return {"message": "Member removed"}
 
 
-# ── Messages ───────────────────────────────────────────────────────────────────
+# ── Messages ───────────────────────────────────────────────────
 
 @router.get("/conversations/{conv_id}/messages")
 async def get_message_history(
@@ -174,12 +174,11 @@ async def get_message_history(
     before_id: Optional[str] = None,
     user: dict = Depends(get_current_user)
 ):
-    """Fetch message history. Automatically marks all messages as read."""
     conv = await _get_conversation_or_404(conv_id)
     if user["user_id"] not in conv["members"]:
         raise HTTPException(status_code=403, detail="Not a member")
 
-    # Mark all messages as read when fetching history (user is viewing the conversation)
+    # Mark as read on fetch (REST — no WebSocket needed)
     await messages_collection.update_many(
         {"conversation_id": conv_id, "sender_id": {"$ne": user["user_id"]}, "is_read": False},
         {"$set": {"is_read": True}}
@@ -199,14 +198,10 @@ async def get_message_history(
 
 
 @router.patch("/conversations/{conv_id}/read")
-async def mark_conversation_read(
-    conv_id: str,
-    user: dict = Depends(get_current_user)
-):
+async def mark_conversation_read(conv_id: str, user: dict = Depends(get_current_user)):
     conv = await _get_conversation_or_404(conv_id)
     if user["user_id"] not in conv["members"]:
         raise HTTPException(status_code=403, detail="Not a member")
-
     result = await messages_collection.update_many(
         {"conversation_id": conv_id, "sender_id": {"$ne": user["user_id"]}, "is_read": False},
         {"$set": {"is_read": True}}
@@ -231,13 +226,16 @@ async def send_message_http(
         sender_name=user.get("name", me),
         content=body.content,
         message_type=body.message_type,
+        image_name=body.image_name,
+        image_mime=body.image_mime,
     )
     result = await messages_collection.insert_one(doc.dict())
     msg_id = str(result.inserted_id)
 
+    preview = "📷 Image" if body.message_type == MessageType.IMAGE else body.content
     await conversations_collection.update_one(
         {"_id": ObjectId(conv_id)},
-        {"$set": {"last_message": body.content, "last_message_at": datetime.utcnow()}}
+        {"$set": {"last_message": preview, "last_message_at": datetime.utcnow()}}
     )
 
     payload = {
@@ -248,10 +246,11 @@ async def send_message_http(
         "sender_name": user.get("name", me),
         "content": body.content,
         "message_type": body.message_type,
+        "image_name": body.image_name,
+        "image_mime": body.image_mime,
         "created_at": doc.created_at.isoformat(),
     }
     await manager.broadcast_to_members(conv["members"], payload, exclude_user_id=me)
-
     return {"message_id": msg_id, "conversation_id": conv_id}
 
 
@@ -271,17 +270,23 @@ async def delete_message(
         raise HTTPException(status_code=403, detail="Cannot delete others' messages")
 
     await messages_collection.delete_one({"_id": ObjectId(msg_id)})
+
+    conv = await _get_conversation_or_404(conv_id)
+    await manager.broadcast_to_members(
+        conv["members"],
+        {"type": "message_deleted", "conversation_id": conv_id, "message_id": msg_id}
+    )
     return {"message": "Deleted"}
 
 
-# ── Online Status ──────────────────────────────────────────────────────────────
+# ── Online Status ──────────────────────────────────────────────
 
 @router.get("/online")
 async def get_online_users(user: dict = Depends(get_current_user)):
     return {"online_users": manager.online_users()}
 
 
-# ── WebSocket ──────────────────────────────────────────────────────────────────
+# ── WebSocket ──────────────────────────────────────────────────
 
 @router.websocket("/ws")
 async def websocket_endpoint(
@@ -310,7 +315,7 @@ async def websocket_endpoint(
                 await websocket.send_text(json.dumps({"type": "error", "detail": "Invalid payload"}))
                 continue
 
-            # ── Typing indicator ───────────────────────────────────────────────
+            # ── Typing ────────────────────────────────────────────
             if data.type == "typing":
                 conv = await conversations_collection.find_one(
                     {"_id": ObjectId(data.conversation_id), "members": me}
@@ -318,16 +323,12 @@ async def websocket_endpoint(
                 if conv:
                     await manager.broadcast_to_members(
                         conv["members"],
-                        {
-                            "type": "typing",
-                            "conversation_id": data.conversation_id,
-                            "user_id": me,
-                            "user_name": my_name
-                        },
+                        {"type": "typing", "conversation_id": data.conversation_id,
+                         "user_id": me, "user_name": my_name},
                         exclude_user_id=me
                     )
 
-            # ── Chat message ───────────────────────────────────────────────────
+            # ── Text message ───────────────────────────────────────
             elif data.type == "message":
                 if not data.content or not data.content.strip():
                     continue
@@ -336,9 +337,9 @@ async def websocket_endpoint(
                     {"_id": ObjectId(data.conversation_id), "members": me}
                 )
                 if not conv:
-                    await websocket.send_text(json.dumps({
-                        "type": "error", "detail": "Conversation not found or not a member"
-                    }))
+                    await websocket.send_text(json.dumps(
+                        {"type": "error", "detail": "Conversation not found or not a member"}
+                    ))
                     continue
 
                 doc = MessageDocument(
@@ -346,16 +347,14 @@ async def websocket_endpoint(
                     sender_id=me,
                     sender_name=my_name,
                     content=data.content.strip(),
+                    message_type=MessageType.TEXT,
                 )
                 result = await messages_collection.insert_one(doc.dict())
                 msg_id = str(result.inserted_id)
 
                 await conversations_collection.update_one(
                     {"_id": ObjectId(data.conversation_id)},
-                    {"$set": {
-                        "last_message": data.content.strip(),
-                        "last_message_at": datetime.utcnow()
-                    }}
+                    {"$set": {"last_message": data.content.strip(), "last_message_at": datetime.utcnow()}}
                 )
 
                 payload = {
@@ -368,17 +367,59 @@ async def websocket_endpoint(
                     "message_type": MessageType.TEXT,
                     "created_at": doc.created_at.isoformat(),
                 }
-
-                # Echo back to sender with is_own flag
                 await websocket.send_text(json.dumps({**payload, "is_own": True}))
-                # Fan-out to all other online members
                 await manager.broadcast_to_members(conv["members"], payload, exclude_user_id=me)
 
-            # ── Unknown event type ─────────────────────────────────────────────
+            # ── Image message ──────────────────────────────────────
+            elif data.type == "image":
+                if not data.content:
+                    continue
+
+                conv = await conversations_collection.find_one(
+                    {"_id": ObjectId(data.conversation_id), "members": me}
+                )
+                if not conv:
+                    await websocket.send_text(json.dumps(
+                        {"type": "error", "detail": "Conversation not found or not a member"}
+                    ))
+                    continue
+
+                doc = MessageDocument(
+                    conversation_id=data.conversation_id,
+                    sender_id=me,
+                    sender_name=my_name,
+                    content=data.content,          
+                    message_type=MessageType.IMAGE,
+                    image_name=data.image_name,
+                    image_mime=data.image_mime or "image/jpeg",
+                )
+                result = await messages_collection.insert_one(doc.dict())
+                msg_id = str(result.inserted_id)
+
+                await conversations_collection.update_one(
+                    {"_id": ObjectId(data.conversation_id)},
+                    {"$set": {"last_message": "📷 Image", "last_message_at": datetime.utcnow()}}
+                )
+
+                payload = {
+                    "type": "message",
+                    "conversation_id": data.conversation_id,
+                    "message_id": msg_id,
+                    "sender_id": me,
+                    "sender_name": my_name,
+                    "content": data.content,
+                    "message_type": MessageType.IMAGE,
+                    "image_name": data.image_name,
+                    "image_mime": data.image_mime or "image/jpeg",
+                    "created_at": doc.created_at.isoformat(),
+                }
+                await websocket.send_text(json.dumps({**payload, "is_own": True}))
+                await manager.broadcast_to_members(conv["members"], payload, exclude_user_id=me)
+
             else:
-                await websocket.send_text(json.dumps({
-                    "type": "error", "detail": f"Unknown event type: {data.type}"
-                }))
+                await websocket.send_text(json.dumps(
+                    {"type": "error", "detail": f"Unknown event type: {data.type}"}
+                ))
 
     except WebSocketDisconnect:
         manager.disconnect(me)

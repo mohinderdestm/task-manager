@@ -6,6 +6,7 @@ from enum import Enum
 
 class MessageType(str, Enum):
     TEXT   = "text"
+    IMAGE  = "image"
     SYSTEM = "system"
     FILE   = "file"
 
@@ -23,6 +24,8 @@ class MessageDocument(BaseModel):
     sender_name: str = ""
     content: str
     message_type: MessageType = MessageType.TEXT
+    image_name: Optional[str] = None
+    image_mime: Optional[str] = None
     is_read: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -59,6 +62,8 @@ class AddMemberRequest(BaseModel):
 class SendMessageRequest(BaseModel):
     content: str
     message_type: MessageType = MessageType.TEXT
+    image_name: Optional[str] = None
+    image_mime: Optional[str] = None
 
 
 # ── WebSocket Payloads ─────────────────────────────────────────────────────────
@@ -68,6 +73,8 @@ class WSIncoming(BaseModel):
     type: str
     conversation_id: str
     content: Optional[str] = None
+    image_name: Optional[str] = None
+    image_mime: Optional[str] = None
 
 
 class WSOutgoing(BaseModel):
@@ -78,5 +85,8 @@ class WSOutgoing(BaseModel):
     sender_id: Optional[str] = None
     sender_name: Optional[str] = None
     content: Optional[str] = None
+    message_type: Optional[str] = None
+    image_name: Optional[str] = None
+    image_mime: Optional[str] = None
     created_at: Optional[str] = None
     extra: Optional[dict] = None
