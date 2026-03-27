@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse
 from datetime import datetime
 from typing import Dict, List
 from bson import ObjectId
+import json
 
 from db import user_collection, message_collection, conversation_collection
 from auth import create_token, verify_token
@@ -12,8 +13,6 @@ app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
 connections: Dict[str, List[WebSocket]] = {}
-
-# ------------------ UI ------------------
 
 @app.get("/")
 async def login_page(request: Request):
@@ -24,15 +23,6 @@ async def login_page(request: Request):
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-
-@app.get("/chat/{conversation_id}")
-async def chat_page(request: Request, conversation_id: str):
-    return templates.TemplateResponse(
-        "chat.html",
-        {"request": request, "conversation_id": conversation_id}
-    )
-
-# ------------------ AUTH ------------------
 
 @app.get("/signup")
 async def signup_page(request: Request):
@@ -63,7 +53,6 @@ async def login(data: dict):
 
     return {"token": token}
 
-# ------------------ CREATE CHAT ------------------
 @app.post("/create-chat")
 async def create_chat(request: Request, data: dict):
     token = request.headers.get("Authorization").split(" ")[1]
@@ -75,27 +64,65 @@ async def create_chat(request: Request, data: dict):
     user_email = user_data["email"]
     other_user = data["other_user"]
 
-    # ✅ CHECK IF CHAT EXISTS
     existing = await conversation_collection.find_one({
         "participants": {
             "$all": [user_email, other_user],
             "$size": 2
         },
-        "is_group": {"$ne": True} 
+        "is_group": {"$ne": True}
     })
 
     if existing:
+
+        if user_email in existing.get("deleted_for", []):
+            await conversation_collection.update_one(
+                {"_id": existing["_id"]},
+                {"$pull": {"deleted_for": user_email}}
+            )
+
         return {"conversation_id": str(existing["_id"])}
 
-    # ✅ CREATE NEW CHAT
     convo = {
         "participants": [user_email, other_user],
-        "created_at": datetime.utcnow()
+        "created_at": datetime.utcnow(),
+        "deleted_for": [],
+        "cleared_at": {}   # 🔥 ADD THIS
     }
 
     result = await conversation_collection.insert_one(convo)
 
     return {"conversation_id": str(result.inserted_id)}
+
+
+@app.get("/chat/{conversation_id}")
+async def chat_page(request: Request, conversation_id: str):
+    return templates.TemplateResponse(
+        "chat.html",
+        {"request": request, "conversation_id": conversation_id}
+    )
+
+
+@app.get("/users")
+async def get_users(request: Request):
+    auth = request.headers.get("Authorization")
+    if not auth:
+        return {"error": "Unauthorized"}
+
+    token = auth.split(" ")[1]
+    user_data = verify_token(token)
+
+    if not user_data:
+        return {"error": "Invalid token"}
+
+    current_email = user_data["email"]
+
+    users = await user_collection.find(
+        {}, {"_id": 0, "name": 1, "email": 1}
+    ).to_list(100)
+
+    users = [u for u in users if u["email"] != current_email]
+
+    return users
 
 @app.post("/create-group")
 async def create_group(request: Request, data: dict):
@@ -114,7 +141,6 @@ async def create_group(request: Request, data: dict):
     group_name = data.get("group_name")
     members = data.get("members", [])
 
-    # ✅ include creator automatically
     participants = list(set(members + [creator]))
 
     convo = {
@@ -160,7 +186,6 @@ async def add_to_group(conversation_id: str, request: Request, data: dict):
 
     return {"message": "Users added"}
 
-# ------------------ GET USER CONVERSATIONS ------------------
 
 @app.get("/my-chats")
 async def get_my_chats(request: Request):
@@ -177,35 +202,82 @@ async def get_my_chats(request: Request):
     user_email = user_data["email"]
 
     chats = await conversation_collection.find({
-        "participants": user_email
-    }).to_list(100)
+        "participants": user_email,
+        "deleted_for": {"$ne": user_email}  
+    }).sort("last_message_at", -1).to_list(100)
 
-    # clean response
     result = []
     for chat in chats:
         result.append({
             "conversation_id": str(chat["_id"]),
             "is_group": chat.get("is_group", False),
             "group_name": chat.get("group_name"),
-            "participants": chat["participants"]
+            "participants": chat["participants"],
+            "admin": chat.get("admin"),
+            "last_message": chat.get("last_message", "")
         })
 
     return result
 
-# ------------------ GET MESSAGES ------------------
+@app.post("/delete-for-me/{conversation_id}")
+async def delete_for_me(conversation_id: str, request: Request):
 
-from bson import ObjectId
+    auth = request.headers.get("Authorization")
+    if not auth:
+        return {"error": "Unauthorized"}
+
+    token = auth.split(" ")[1]
+    user_data = verify_token(token)
+
+    if not user_data:
+        return {"error": "Invalid token"}
+
+    user_email = user_data["email"]
+
+    await conversation_collection.update_one(
+        {"_id": ObjectId(conversation_id)},
+        {
+            "$addToSet": {"deleted_for": user_email},
+            "$set": {f"cleared_at.{user_email}": datetime.utcnow()}  # 🔥 KEY LINE
+        }
+    )
+
+    return {"message": "Chat cleared for you"}
+
 @app.get("/messages/{conversation_id}")
-async def get_messages(conversation_id: str):
-    data = await message_collection.find(
-        {"conversation_id": conversation_id}
-    ).sort("created_at", 1).to_list(50)
+async def get_messages(conversation_id: str, request: Request):
+
+    auth = request.headers.get("Authorization")
+    if not auth:
+        return []
+
+    token = auth.split(" ")[1]
+    user_data = verify_token(token)
+
+    if not user_data:
+        return []
+
+    user_email = user_data["email"]
+
+    convo = await conversation_collection.find_one({
+        "_id": ObjectId(conversation_id)
+    })
+
+    cleared_time = None
+    if convo:
+        cleared_time = convo.get("cleared_at", {}).get(user_email)
+
+    query = {"conversation_id": conversation_id}
+
+    if cleared_time:
+        query["created_at"] = {"$gt": cleared_time}
+
+    data = await message_collection.find(query).sort("created_at", 1).to_list(50)
 
     for msg in data:
         msg["_id"] = str(msg["_id"])
 
     return data
-# ------------------ WEBSOCKET ------------------
 
 @app.websocket("/ws/{conversation_id}")
 async def websocket_endpoint(websocket: WebSocket, conversation_id: str):
@@ -218,7 +290,6 @@ async def websocket_endpoint(websocket: WebSocket, conversation_id: str):
         await websocket.close()
         return
 
-    user_name = user_data.get("name") or user_data.get("email")
     user_email = user_data["email"]
 
     convo = await conversation_collection.find_one({
@@ -234,112 +305,78 @@ async def websocket_endpoint(websocket: WebSocket, conversation_id: str):
 
     connections[conversation_id].append(websocket)
 
-    print("CONNECTED:", user_email, "→", conversation_id)
-    print("TOTAL CONNECTIONS:", len(connections[conversation_id]))
-
     try:
         while True:
-            text = await websocket.receive_text()
+            data = json.loads(await websocket.receive_text())
+            if data.get("type") == "typing":
+                for conn in connections[conversation_id]:
+                    if conn != websocket:
+                        await conn.send_text(json.dumps({
+                            "type": "typing",
+                            "sender": user_email
+                        }))
+                continue
+
+        
+            text = data.get("text")
+
+            participants = convo["participants"]
+            receivers = [p for p in participants if p != user_email]
 
             msg = {
                 "conversation_id": conversation_id,
-                "sender": user_name,
+                "sender": user_email,
+                "receivers": receivers,
                 "text": text,
                 "created_at": datetime.utcnow()
             }
 
             await message_collection.insert_one(msg)
 
+            await conversation_collection.update_one(
+                {"_id": ObjectId(conversation_id)},
+                {
+                    "$set": {
+                        "last_message": text,
+                        "last_message_at": datetime.utcnow()
+                    }
+                }
+            )
+
             for conn in connections[conversation_id]:
-                await conn.send_text(f"{user_name}: {text}")
+                await conn.send_text(json.dumps({
+                    "type": "message",
+                    "sender": user_email,
+                    "text": text
+                }))
 
     except WebSocketDisconnect:
         if websocket in connections[conversation_id]:
             connections[conversation_id].remove(websocket)
 
+@app.get("/conversation/{conversation_id}")
+async def get_conversation(conversation_id: str, request: Request):
 
+    auth = request.headers.get("Authorization")
+    if not auth:
+        return {"error": "Unauthorized"}
 
+    token = auth.split(" ")[1]
+    user_data = verify_token(token)
 
-# from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
-# from fastapi.templating import Jinja2Templates
-# from datetime import datetime
-# from typing import Dict, List
+    if not user_data:
+        return {"error": "Invalid token"}
 
-# from db import message_collection, conversation_collection
+    convo = await conversation_collection.find_one({
+        "_id": ObjectId(conversation_id)
+    })
 
-# app = FastAPI()
+    if not convo:
+        return {"error": "Conversation not found"}
 
-# templates = Jinja2Templates(directory="templates")
-
-# # store connections per conversation
-# active_connections: Dict[str, List[WebSocket]] = {}
-
-
-# # ------------------ WEBSOCKET ------------------
-# @app.websocket("/ws/{conversation_id}/{user_id}")
-# async def websocket_endpoint(websocket: WebSocket, conversation_id: str, user_id: str):
-#     await websocket.accept()
-
-#     if conversation_id not in active_connections:
-#         active_connections[conversation_id] = []
-
-#     active_connections[conversation_id].append(websocket)
-
-#     try:
-#         while True:
-#             text = await websocket.receive_text()
-
-#             # save message
-#             msg = {
-#                 "conversation_id": conversation_id,
-#                 "sender": user_id,
-#                 "text": text,
-#                 "created_at": datetime.utcnow()
-#             }
-
-#             await message_collection.insert_one(msg)
-
-#             # broadcast
-#             for conn in active_connections[conversation_id]:
-#                 await conn.send_text(f"{user_id}: {text}")
-
-#     except WebSocketDisconnect:
-#         active_connections[conversation_id].remove(websocket)
-
-
-# # ------------------ CREATE CHAT ------------------
-# @app.post("/create-chat")
-# async def create_chat(data: dict):
-#     convo = {
-#         "participants": [data["user1"], data["user2"]],
-#         "created_at": datetime.utcnow()
-#     }
-
-#     result = await conversation_collection.insert_one(convo)
-
-#     return {"conversation_id": str(result.inserted_id)}
-
-
-# # ------------------ GET MESSAGES ------------------
-# @app.get("/messages/{conversation_id}")
-# async def get_messages(conversation_id: str):
-#     data = await message_collection.find(
-#         {"conversation_id": conversation_id}
-#     ).sort("created_at", 1).to_list(100)
-
-#     return data
-
-
-# # ------------------ UI ------------------
-# @app.get("/")
-# async def home(request: Request):
-#     return templates.TemplateResponse("index.html", {"request": request})
-
-
-# @app.get("/chat/{conversation_id}/{user_id}")
-# async def chat_page(request: Request, conversation_id: str, user_id: str):
-#     return templates.TemplateResponse("chat.html", {
-#         "request": request,
-#         "conversation_id": conversation_id,
-#         "user_id": user_id
-#     })
+    return {
+        "is_group": convo.get("is_group", False),
+        "group_name": convo.get("group_name"),
+        "admin": convo.get("admin"),
+        "participants": convo.get("participants", [])
+    }

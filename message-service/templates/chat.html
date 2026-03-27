@@ -60,12 +60,14 @@ body {
 
 <body>
 
-<div class="header">Chat Room</div>
+<div class="header" id="chatHeader">Chat</div>
 
 <div id="box"></div>
 
+<div id="typing" style="padding:5px; color:gray;"></div>
+
 <div class="footer">
-    <input id="msg" placeholder="Type message...">
+    <input id="msg" placeholder="Type message..." oninput="sendTyping()">
     <button onclick="send()">Send</button>
 </div>
 
@@ -76,15 +78,30 @@ const token = sessionStorage.getItem("token");
 const ws = new WebSocket(`ws://127.0.0.1:8000/ws/${convo}?token=${token}`);
 const box = document.getElementById("box");
 
-function getUser() {
+function getUserData() {
     const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.name || payload.email;
+    return {
+        name: payload.name,
+        email: payload.email
+    };
 }
 
-const me = getUser();
+const currentUser = getUserData();
+
+function getNameFromEmail(email) {
+    if (email === currentUser.email) {
+        return currentUser.name;
+    }
+    return email.split("@")[0];
+}
 
 async function load() {
-    const res = await fetch(`/messages/${convo}`);
+    const res = await fetch(`/messages/${convo}`, {
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    });
+
     const data = await res.json();
 
     data.forEach(m => addMsg(m.sender, m.text));
@@ -94,129 +111,66 @@ function addMsg(sender, text) {
     const div = document.createElement("div");
     div.classList.add("msg");
 
-    if (sender === me) {
+    if (sender === currentUser.email) {
         div.classList.add("me");
     } else {
         div.classList.add("other");
     }
 
-    div.innerHTML = `<b>${sender}</b><br>${text}`;
+    const name = getNameFromEmail(sender);
+
+    div.innerHTML = `<b>${name}</b><br>${text}`;
+
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
 }
 
-load();
+let typingTimeout;
+
+function showTyping(sender) {
+    const div = document.getElementById("typing");
+    div.innerText = getNameFromEmail(sender) + " is typing...";
+
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        div.innerText = "";
+    }, 2000);
+}
+
+function clearTyping() {
+    document.getElementById("typing").innerText = "";
+}
+
+function sendTyping() {
+    ws.send(JSON.stringify({ type: "typing" }));
+}
 
 ws.onmessage = (e) => {
-    const [sender, ...rest] = e.data.split(": ");
-    addMsg(sender, rest.join(": "));
+    const data = JSON.parse(e.data);
+
+    if (data.type === "typing") {
+        showTyping(data.sender);
+    }
+
+    if (data.type === "message") {
+        addMsg(data.sender, data.text);
+        clearTyping();
+    }
 };
 
 function send() {
     if (!msg.value) return;
-    ws.send(msg.value);
+
+    ws.send(JSON.stringify({
+        type: "message",
+        text: msg.value
+    }));
+
     msg.value = "";
 }
+
+load();
 </script>
 
 </body>
 </html>
-
-<!-- <!DOCTYPE html>
-<html>
-<body>
-
-<h3>Chat</h3>
-
-<div id="box" style="height:300px; overflow:auto; border:1px solid black;"></div>
-
-<input id="msg">
-<button onclick="send()">Send</button>
-
-<script>
-const convo = "{{conversation_id}}";
-const token = sessionStorage.getItem("token");
-
-const ws = new WebSocket(`ws://127.0.0.1:8000/ws/${convo}?token=${token}`);
-
-const box = document.getElementById("box");
-
-async function load() {
-    const res = await fetch(`/messages/${convo}`);
-    const data = await res.json();
-
-    data.forEach(m => {
-        box.innerHTML += `<p><b>${m.sender}</b>: ${m.text}</p>`;
-    });
-}
-
-load();
-
-ws.onmessage = (e) => {
-    box.innerHTML += `<p>${e.data}</p>`;
-};
-
-function send() {
-    const input = document.getElementById("msg");
-    if (!input.value) return;
-
-    ws.send(input.value);
-    input.value = "";
-}
-</script>
-
-</body>
-</html> -->
-
-
-<!-- <!DOCTYPE html>
-<html>
-<head>
-    <title>Chat</title>
-</head>
-<body>
-
-<h3>Chat</h3>
-
-<div id="box" style="height:300px; overflow:auto; border:1px solid black;"></div>
-
-<input id="msg" placeholder="Type message">
-<button onclick="send()">Send</button>
-
-<script>
-const convo = "{{conversation_id}}";
-const user = "{{user_id}}";
-
-const ws = new WebSocket(`ws://127.0.0.1:8000/ws/${convo}/${user}`);
-
-const box = document.getElementById("box");
-
-// load old messages
-async function load() {
-    const res = await fetch(`/messages/${convo}`);
-    const data = await res.json();
-
-    data.forEach(m => {
-        box.innerHTML += `<p><b>${m.sender}</b>: ${m.text}</p>`;
-    });
-}
-load();
-
-// receive messages
-ws.onmessage = (event) => {
-    box.innerHTML += `<p>${event.data}</p>`;
-};
-
-// send message
-function send() {
-    const input = document.getElementById("msg");
-
-    if (input.value.trim() === "") return;
-
-    ws.send(input.value);
-    input.value = "";
-}
-</script>
-
-</body>
-</html> -->

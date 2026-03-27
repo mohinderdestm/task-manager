@@ -10,24 +10,44 @@ body {
     align-items: center;
     height: 100vh;
 }
+
 .card {
     background: white;
     padding: 30px;
     border-radius: 10px;
-    width: 300px;
+    width: 320px;
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
+
+h2 {
+    text-align: center;
+}
+
 input {
     width: 100%;
     padding: 10px;
     margin: 8px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
 }
+
 button {
     width: 100%;
     padding: 10px;
-    background: #2196F3;
+    background: #27ae60;
     color: white;
     border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #219150;
+}
+
+
+p {
+    text-align: center;
 }
 </style>
 </head>
@@ -35,79 +55,49 @@ button {
 <body>
 
 <div class="card">
-<h2>Signup</h2>
+    <h2>Create Account</h2>
 
-<input id="name" placeholder="Name">
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
+    <input id="name" placeholder="Full Name">
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
 
-<button onclick="signup()">Create Account</button>
+    <button onclick="signup()">Signup</button>
 
-<p style="text-align:center;"><a href="/">Back to Login</a></p>
+    <p>Already have an account? <a href="/">Login</a></p>
 </div>
 
 <script>
 async function signup() {
+
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (!name || !email || !password) {
+        alert("All fields are required");
+        return;
+    }
+
     const res = await fetch("/signup", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
-            name: name.value,
-            email: email.value,
-            password: password.value
+            name: name,
+            email: email,
+            password: password
         })
     });
 
     const data = await res.json();
 
     if (data.message) {
-        alert("Account created!");
+        alert("Account created successfully!");
         window.location.href = "/";
     } else {
-        alert(data.error);
+        alert(data.error || "Signup failed");
     }
 }
 </script>
 
 </body>
 </html>
-
-<!-- <!DOCTYPE html>
-<html>
-<body>
-
-<h2>Signup</h2>
-
-<input id="name" placeholder="Name">
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
-
-<button onclick="signup()">Create Account</button>
-
-<p>Already have account? <a href="/">Login</a></p>
-
-<script>
-async function signup() {
-    const res = await fetch("/signup", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            name: document.getElementById("name").value,   // ✅ ADD THIS
-            email: document.getElementById("email").value,
-            password: document.getElementById("password").value
-        })
-    });
-
-    const data = await res.json();
-
-    if (data.message) {
-        alert("Account created!");
-        window.location.href = "/";
-    } else {
-        alert(data.error);
-    }
-}
-</script>
-
-</body>
-</html> -->
