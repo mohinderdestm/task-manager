@@ -7,9 +7,22 @@ from models import User,RefreshRequest,UserLogin
 from utils import create_access_token, verify_token, hash_password, create_refresh_token , verify_password
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import Depends
+from fastapi.middleware.cors import CORSMiddleware
 
 # test branch
 app = FastAPI()
+
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[  
+        "http://localhost:3009",
+        "http://127.0.0.1:3009",], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 PORT = int(os.getenv("PORT", 8000))
 
@@ -82,14 +95,16 @@ async def sign_in(user: UserLogin):
     token = create_access_token({
         "user_id": db_user["_id"],
         "email": db_user["email"],
-        "role": db_user.get("role", "employee") 
+        "role": db_user.get("role", "employee"),
+        "name": db_user.get("name")  
     })
     
     return {
         "user": {
             "id": db_user["_id"],
             "email": db_user["email"],
-            "role": db_user.get("role", "employee")
+            "role": db_user.get("role", "employee"),
+            "name":db_user.get("name")
         },
         "access_token": token,
         

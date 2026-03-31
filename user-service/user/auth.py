@@ -4,7 +4,7 @@ import jwt
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
@@ -12,8 +12,7 @@ ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 security = HTTPBearer()
 
 async def validate_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-
-    token = credentials.credentials.replace("Bearer ", "")
+    token = credentials.credentials
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -23,7 +22,8 @@ async def validate_token(credentials: HTTPAuthorizationCredentials = Depends(sec
         return {
             "user_id": payload.get("user_id"),
             "email": payload.get("email"),
-            "role": payload.get("role", "employee")
+            "role": payload.get("role", "employee"),
+            "name":payload.get("name")
         }
 
     except jwt.ExpiredSignatureError:

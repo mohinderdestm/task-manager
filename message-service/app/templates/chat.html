@@ -1,647 +1,1260 @@
 <!doctype html>
-
-<html>
+<html lang="en">
   <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Chat App</title>
-
     <style>
       * {
+        box-sizing: border-box;
         margin: 0;
         padding: 0;
-        box-sizing: border-box;
       }
 
+      html,
       body {
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        height: 100vh;
-        background: linear-gradient(135deg, #5455b0 0%, #764ba2 100%);
+        height: 100%;
+        overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      #loginBox,
+      #chatApp {
+        display: none;
+      }
+
+      #loginBox.show {
         display: flex;
+      }
+
+      #loginBox {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 20px;
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        z-index: 1000;
+      }
+
+      #loginBox input {
+        padding: 16px 20px;
+        border-radius: 12px;
+        border: none;
+        width: 320px;
+        font-size: 16px;
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      }
+
+      #loginBox button {
+        padding: 16px 32px;
+        border: none;
+        background: linear-gradient(45deg, #0077cc, #005fa3);
+        color: white;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        transition: all 0.3s;
+        box-shadow: 0 4px 20px rgba(0, 119, 204, 0.4);
+      }
+
+      #loginBox button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 30px rgba(0, 119, 204, 0.6);
+      }
+
+      #chatApp {
+        display: none;
+        flex-direction: column;
+        width: 100vw;
+        height: 100vh;
+        background: #fff;
         overflow: hidden;
       }
 
-      .container {
+      #topBar {
+        padding: 12px 24px;
+        background: linear-gradient(45deg, #0077cc, #005fa3);
+        color: white;
         display: flex;
-        width: 100%;
-        height: 100vh;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 20px rgba(0, 119, 204, 0.3);
       }
 
-      /* SIDEBAR */
-      .sidebar {
+      #userInfo {
+        font-weight: 600;
+        font-size: 18px;
+      }
+
+      #logoutBtn {
+        padding: 10px 20px;
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 25px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.3s;
+      }
+
+      #logoutBtn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+      }
+
+      #mainContainer {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+      }
+
+      #sidebar {
         width: 320px;
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(20px);
+        background: #f8fafc;
         border-right: 1px solid #e5e7eb;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
       }
 
-      .header {
+      #searchSection {
         padding: 20px;
-        background: linear-gradient(135deg, #5455b0, #8b5cf6);
-        color: white;
-        text-align: center;
-        font-size: 18px;
-        font-weight: 600;
+        border-bottom: 1px solid #e5e7eb;
+        background: #fff;
       }
 
-      .connect-section {
-        padding: 15px;
-        border-bottom: 1px solid #eee;
-      }
-
-      .input-group {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-bottom: 15px;
-      }
-
-      .input-group input,
-      .input-group select,
-      #groupId,
-      #userSearch {
+      #searchInput {
         width: 100%;
-        padding: 14px 14px;
+        padding: 14px 20px 14px 48px;
         border: 2px solid #e5e7eb;
         border-radius: 12px;
-        font-size: 14px;
+        font-size: 16px;
+        background: #fff
+          url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="%2364748b" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>')
+          no-repeat 16px center;
+        transition: border-color 0.3s;
       }
 
-      .btn {
-        width: 100%;
-        padding: 12px 20px;
-        border: none;
-        border-radius: 12px;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        margin-top: 10px;
+      #searchInput:focus {
+        outline: none;
+        border-color: #0077cc;
+        box-shadow: 0 0 0 3px rgba(0, 119, 204, 0.1);
       }
 
-      .connect-section {
-        padding: 20px;
-        background: white;
-        border-bottom: 1px solid #eee;
-        display: flex;
-        flex-direction: column;
-        gap: 10px; /* ✅ spacing between input + buttons */
-      }
-
-      .connect-section input {
-        padding: 8px 10px;
-        border-radius: 12px;
-      }
-
-      .btn-primary {
-        background: #5455b0;
-        color: white;
-      }
-
-      .btn-secondary {
-        background: #e5e7eb;
-      }
-
-      .group-section {
+      #contentList {
         flex: 1;
         overflow-y: auto;
-        padding: 15px;
+        padding: 8px 0;
       }
 
-      /* CHAT LIST */
-      #chatList div {
-        padding: 10px;
-        border-radius: 10px;
-        margin-bottom: 6px;
+      .section-header {
+        padding: 0 20px 12px;
+        font-size: 13px;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+      }
+
+      .create-group-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        margin: 0 16px 16px;
+        background: linear-gradient(45deg, #10b981, #059669);
+        color: white;
+        border: none;
+        border-radius: 12px;
         cursor: pointer;
-        transition: 0.2s;
+        font-weight: 500;
+        transition: all 0.3s;
+        font-size: 14px;
+        width: calc(100% - 32px);
       }
 
-      #chatList div:hover {
-        background: #eef2ff;
+      .create-group-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
       }
 
-      #chatList .active {
-        background: #4f46e5;
+      .chat-item {
+        padding: 16px 20px;
+        margin: 0 12px 12px;
+        border-radius: 16px;
+        cursor: pointer;
+        background: #fff;
+        border: 2px solid transparent;
+        transition: all 0.3s;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        position: relative;
+      }
+
+      .chat-item:hover {
+        background: #f1f5f9;
+        border-color: #e2e8f0;
+        transform: translateX(4px);
+      }
+
+      .chat-item.active {
+        background: linear-gradient(135deg, #0077cc, #005fa3);
+        color: white;
+        border-color: #0077cc;
+        box-shadow: 0 8px 25px rgba(0, 119, 204, 0.3);
+      }
+
+      .chat-item.active .chat-name {
         color: white;
       }
 
-      /* MAIN CHAT */
-      .main-chat {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        background: white;
+      .chat-item.active .chat-preview {
+        color: rgba(255, 255, 255, 0.8);
       }
 
       .chat-header {
-        padding: 15px 20px;
-        border-bottom: 1px solid #e5e7eb;
         display: flex;
-        gap: 10px;
         align-items: center;
+        gap: 12px;
+        width: 100%;
       }
 
-      .chat-header input,
-      .chat-header select {
-        padding: 8px;
-        border-radius: 8px;
-        border: 1px solid #ddd;
+      .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 600;
+        color: white;
+        flex-shrink: 0;
       }
 
-      /* MESSAGES */
-      .messages-container {
+      .group-avatar {
+        background: linear-gradient(45deg, #f59e0b, #d97706);
+      }
+
+      .chat-name {
+        font-weight: 600;
+        font-size: 15px;
         flex: 1;
-        padding: 20px;
-        overflow-y: auto;
-        background: #f8fafc;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
-      .messages {
-        list-style: none;
+      .chat-preview {
+        font-size: 14px;
+        color: #64748b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+      }
+
+      .online-indicator {
+        position: absolute;
+        right: 20px;
+        top: 20px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #10b981;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+      }
+
+      .chat-item.active .online-indicator {
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      #mainChat {
+        flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        position: relative;
       }
 
-      .messages li {
-        padding: 12px 16px;
-        border-radius: 18px;
-        max-width: 65%;
+      #chatHeader {
+        padding: 20px 32px;
+        background: rgba(255, 255, 255, 0.9);
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        backdrop-filter: blur(20px);
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+      }
+
+      #chatHeader .avatar {
+        width: 48px;
+        height: 48px;
+        font-size: 18px;
+      }
+
+      #chatTitle {
+        font-weight: 600;
+        font-size: 18px;
+        color: #1e293b;
+      }
+
+      #chatSubtitle {
+        color: #64748b;
         font-size: 14px;
+      }
+
+      #messages {
+        flex: 1;
+        padding: 24px 32px;
+        list-style: none;
+        margin: 0;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      #messages li {
+        margin-bottom: 16px;
+        padding: 12px 18px;
+        border-radius: 20px;
+        max-width: 70%;
+        word-wrap: break-word;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        font-size: 15px;
         line-height: 1.4;
       }
 
-      /* YOUR MESSAGE */
-      .green {
-        background: #dcfce7;
-        color: #166534;
+      #messages li.green {
+        background: linear-gradient(45deg, #10b981, #059669);
+        color: white;
         align-self: flex-end;
-        border-bottom-right-radius: 4px;
+        margin-left: auto;
+        border-bottom-right-radius: 6px;
       }
 
-      /* OTHER MESSAGE */
-      .blue {
-        background: white;
-        border: 1px solid #e5e7eb;
-        color: #111827;
+      #messages li.blue {
+        background: linear-gradient(45deg, #3b82f6, #1d4ed8);
+        color: white;
         align-self: flex-start;
-        border-bottom-left-radius: 4px;
+        border-bottom-left-radius: 6px;
       }
 
-      /* INPUT */
-      .chat-input {
-        padding: 15px;
-        border-top: 1px solid #eee;
+      #inputBox {
+        padding: 28px 32px;
         display: flex;
-        gap: 10px;
+        gap: 16px;
+        border-top: 1px solid #e5e7eb;
+        background: #fff;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
       }
 
-      .chat-input input {
+      #message {
+        padding: 16px 24px;
+        border: 2px solid #e5e7eb;
+        border-radius: 24px;
+        font-size: 16px;
         flex: 1;
-        padding: 12px;
-        border-radius: 20px;
-        border: 1px solid #ddd;
+        background: #fafbfc;
+        transition: all 0.3s;
+        resize: none;
       }
 
-      .chat-input button {
-        background: #4f46e5;
+      #message:focus {
+        outline: none;
+        border-color: #0077cc;
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(0, 119, 204, 0.1);
+      }
+
+      #sendBtn {
+        padding: 16px 28px;
+        background: linear-gradient(45deg, #0077cc, #005fa3);
         color: white;
         border: none;
-        border-radius: 20px;
-        padding: 10px 18px;
+        border-radius: 24px;
         cursor: pointer;
+        font-weight: 600;
+        font-size: 16px;
+        transition: all 0.3s;
+        flex-shrink: 0;
       }
 
-      #directChats div,
-      #groupChats div {
-        padding: 6px 8px;
-        margin-bottom: 5px;
-        border-radius: 10px;
-        cursor: pointer;
-        transition: 0.2s;
-        background: #f9fafb;
-        border: 1px solid #e5e7eb;
-      }
-      #searchResults {
-        display: none; /* hidden initially */
-        max-height: 150px;
-        overflow-y: auto;
-        border: 1px solid #eee;
-        border-radius: 10px;
-        background: white;
+      #sendBtn:hover:not(:disabled) {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 119, 204, 0.4);
       }
 
-      #receiverResults {
-        display: none;
-        position: absolute;
-        top: 38px;
+      #sendBtn:disabled {
+        background: #d1d5db;
+        cursor: default;
+        transform: none;
+      }
+
+      /* Custom Scrollbars */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #f1f5f9;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 60px 20px;
+        color: #64748b;
+        font-style: italic;
+      }
+
+      .simple-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
         width: 100%;
-        max-height: 150px;
-        overflow-y: auto;
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        z-index: 100;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
-
-      #receiverResults div {
-        padding: 8px;
+      .simple-img {
+        max-width: 90%;
+        max-height: 90%;
+        border-radius: 8px;
+      }
+      .download-bar {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 10px 20px;
+        border-radius: 20px;
         cursor: pointer;
-        border-bottom: 1px solid #eee;
       }
 
-      #receiverResults div:hover {
-        background: #eef2ff;
+      #inputBox button[onclick*="image"] {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        border: 1px solid #ccc;
+        background: #f8f9fa;
+        color: #007bff;
+        font-size: 18px;
+        cursor: pointer;
+      }
+
+      #inputBox button[onclick*="image"]:hover {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
       }
     </style>
   </head>
-
   <body>
-    <div class="container">
-      <!-- SIDEBAR -->
-      <div class="sidebar">
-        <div class="header">Chat App</div>
-        <div class="connect-section">
-          <input id="userId" placeholder="Enter user id" />
-          <button class="btn btn-primary" onclick="connect()">Connect</button>
-          <button class="btn btn-secondary" onclick="setToken()">
-            Set Token
-          </button>
-        </div>
+    <!-- Login Box -->
+    <div id="loginBox" class="show">
+      <h2 style="margin: 0 0 12px 0; font-size: 32px">Welcome Back</h2>
+      <input id="email" type="email" placeholder="Email" />
+      <input id="password" type="password" placeholder="Password" />
+      <button onclick="login()">Login</button>
+    </div>
 
-        <div class="group-section">
-          <h3 style="margin-top: 15px;margin-bottom:12px">Direct Chats</h3>
-          <div id="directChats"></div>
-
-          <h3 style="margin-top: 15px; margin-bottom: 15px">Groups</h3>
-          <div id="groupChats"></div>
-          <input id="groupId" placeholder="Group Name" />
-          <input
-            id="userSearch"
-            placeholder="Search users"
-            oninput="filterUsers()"
-          />
-          <div id="searchResults"></div>
-          <div id="selectedUsers"></div>
-          <button class="btn btn-primary" onclick="createGroup()">
-            Create Group
-          </button>       
-        </div>
+    <!-- Chat App -->
+    <div id="chatApp">
+      <div id="topBar">
+        <div id="userInfo">👤 Loading...</div>
+        <button id="logoutBtn" onclick="logout()">Logout</button>
       </div>
 
-      <!-- MAIN CHAT -->
-      <div class="main-chat">
-        <div class="chat-header">
-          <select id="chatType">
-            <option value="direct">Direct</option>
-            <option value="group">Group</option>
-          </select>
-          <!-- <input id="receiver" placeholder="Receiver" /> -->
-          <div style="position: relative; width: 200px">
+      <div id="mainContainer">
+        <!-- Sidebar -->
+        <div id="sidebar">
+          <div id="searchSection">
             <input
-              id="receiver"
-              placeholder="Search user/group"
-              oninput="searchReceiver()"
+              id="searchInput"
+              placeholder="Search contacts or groups..."
+              oninput="searchContacts()"
             />
-            <div id="receiverResults"></div>
+          </div>
+
+          <div id="contentList">
+            <!-- Dynamic content loaded here -->
           </div>
         </div>
 
-        <div class="messages-container">
-          <ul id="messages" class="messages"></ul>
-        </div>
+        <!-- Main Chat Area -->
+        <div id="mainChat">
+          <div id="chatHeader" style="display: none">
+            <div id="chatAvatar" class="avatar"></div>
+            <div>
+              <div id="chatTitle">Select a chat</div>
+            </div>
+          </div>
 
-        <div class="chat-input">
-          <input id="message" placeholder="Type a message..." />
-          <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+          <ul id="messages"></ul>
+
+          <div id="inputBox">
+            <textarea
+              id="message"
+              rows="1"
+              placeholder="Type a message..."
+              onkeypress="handleKeyPress(event)"
+              style="resize: none"
+            ></textarea>
+            <input
+              type="file"
+              id="imageInput"
+              accept="image/*"
+              style="display: none"
+            />
+            <button onclick="document.getElementById('imageInput').click()">
+              📎
+            </button>
+            <button id="sendBtn" disabled onclick="sendMessage()">Send</button>
+          </div>
         </div>
       </div>
     </div>
 
     <script>
       let ws;
+      let userMap = {};
       let allUsers = [];
-      let selectedMembers = [];
+      let currentUser = null;
+      let allContacts = [];
+      let filteredContacts = [];
+      let isCreatingGroup = false;
+      let selectedContact = null;
+      let chatPreviews = {};
+      // Store last message previews
 
-      function connect() {
-        const userId = document.getElementById("userId").value.toLowerCase();
+      // Login
+      async function login() {
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
 
-        ws = new WebSocket(`ws://localhost:8005/ws/${userId}`);
-
-        ws.onopen = () => {
-          document.getElementById("sendBtn").disabled = false;
-          loadChats();
-        };
-
-        ws.onmessage = (event) => {
-          const li = document.createElement("li");
-
-          if (event.data.includes("You:")) {
-            li.className = "green";
-          } else {
-            li.className = "blue";
-          }
-
-          li.innerText = event.data;
-          document.getElementById("messages").appendChild(li);
-        };
-      }
-
-      function setToken() {
-        const token = prompt("Paste your token here:");
-        if (!token) return;
-
-        localStorage.setItem("token", token);
-        alert("Token saved! Now refresh page.");
-
-        console.log("Saved token:", token);
-      }
-
-      function sendMessage() {
-        const type = document.getElementById("chatType").value;
-        const receiver = document
-          .getElementById("receiver")
-          .value.toLowerCase();
-        const message = document.getElementById("message").value;
-
-        if (!ws || ws.readyState !== WebSocket.OPEN) return;
-
-        if (type === "group") {
-          ws.send(`group:${receiver}:${message}`);
-        } else {
-          ws.send(`${receiver}:${message}`);
-        }
-
-        document.getElementById("message").value = "";
-        setTimeout(loadChats, 300);
-      }
-
-      async function loadChats() {
-        const userId = document.getElementById("userId").value.toLowerCase();
-
-        const res = await fetch(
-          `http://localhost:8005/conversations/${userId}`,
-        );
-        const data = await res.json();
-
-        currentGroups = data.groups;
-
-        const directBox = document.getElementById("directChats");
-        const groupBox = document.getElementById("groupChats");
-
-        directBox.innerHTML = "";
-        groupBox.innerHTML = "";
-
-        // 👤 DIRECT CHATS
-        data.direct.forEach((user) => {
-          const div = document.createElement("div");
-          div.innerText = "👤 " + user;
-
-          div.onclick = () => openChat("direct", user, div);
-
-          directBox.appendChild(div);
-        });
-
-        // 👥 GROUP CHATS
-        data.groups.forEach((group) => {
-          const div = document.createElement("div");
-          div.innerText = "👥 " + group;
-
-          div.onclick = () => openChat("group", group, div);
-
-          groupBox.appendChild(div);
-        });
-      }
-
-      //load users
-      async function loadUsers() {
-        const token = localStorage.getItem("token");
-
-        const res = await fetch("http://localhost:8001/users/public", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const data = await res.json();
-        allUsers = data.users || data;
-      }
-
-      // search function
-
-      function filterUsers() {
-        const query = document.getElementById("userSearch").value.toLowerCase();
-        const resultsDiv = document.getElementById("searchResults");
-
-        resultsDiv.innerHTML = "";
-
-        // if (!query) return;
-        if (!query) {
-          resultsDiv.style.display = "none"; 
-          return;
-        }
-
-        const filtered = allUsers.filter((user) =>
-          (user.name || "").toLowerCase().startsWith(query),
-        );
-
-        if (filtered.length === 0) {
-          resultsDiv.innerHTML = `<div style="padding:8px;color:gray;">No users found</div>`;
-          resultsDiv.style.display = "block";
-          return;
-        }
-
-        filtered.forEach((user) => {
-          const username = user.name?.toLowerCase();
-
-          const div = document.createElement("div");
-          div.innerText = username;
-          div.style.padding = "8px";
-          div.style.cursor = "pointer";
-          div.style.borderBottom = "1px solid #eee";
-
-          div.addEventListener("click", () => {
-            addUser(username);
-
-            // clear search UI
-            document.getElementById("userSearch").value = "";
-            resultsDiv.innerHTML = "";
-            resultsDiv.style.display = "none"; 
-          });
-
-          resultsDiv.appendChild(div);
-        });
-        resultsDiv.style.display = "block";
-      }
-
-      // chip function
-
-      function addUser(name) {
-        if (!name) return;
-
-        if (selectedMembers.includes(name)) {
-          alert("User already added");
-          return;
-        }
-
-        selectedMembers.push(name);
-        console.log("Selected Members:", selectedMembers); 
-
-        const container = document.getElementById("selectedUsers");
-
-        const chip = document.createElement("div");
-        chip.innerText = name + " ✕";
-        chip.style.background = "#e0e7ff";
-        chip.style.padding = "6px 10px";
-        chip.style.borderRadius = "12px";
-        chip.style.cursor = "pointer";
-
-        chip.onclick = () => {
-          selectedMembers = selectedMembers.filter((u) => u !== name);
-          chip.remove();
-        };
-
-        container.appendChild(chip);
-      }
-
-      //creating group
-
-      async function createGroup() {
-        const groupName = document.getElementById("groupId").value;
-        const token = localStorage.getItem("token");
-
-        if (!groupName) {
-          alert("Enter group name");
-          return;
-        }
-
-        if (selectedMembers.length === 0) {
-          alert("Add at least 1 member");
+        if (!email || !password) {
+          alert("Please enter email and password");
           return;
         }
 
         try {
-          const res = await fetch("http://localhost:8005/create-group", {
+          console.log("Logging in...");
+          const res = await fetch("http://localhost:3001/auth/login", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              group_id: groupName,
-              members: selectedMembers,
-            }),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
           });
 
           const data = await res.json();
-
-          console.log("Group response:", data);
-
           if (!res.ok) {
-            alert(data.detail || "Group creation failed");
+            alert(data.detail || data.message || "Login failed");
+            return;
+          }
+          const token = Array.isArray(data.access_token)
+            ? data.access_token[0]
+            : data.access_token;
+          if (!token) {
+            alert("No token received");
             return;
           }
 
-          alert("✅ Group created!");
+          sessionStorage.setItem("token", token);
+          currentUser = JSON.parse(atob(token.split(".")[1]));
+          sessionStorage.setItem("user", JSON.stringify(currentUser));
+          console.log("Logged in as:", currentUser);
+          document.getElementById("loginBox").classList.remove("show");
+          document.getElementById("chatApp").style.display = "flex";
 
-         
-          selectedMembers = [];
-          document.getElementById("selectedUsers").innerHTML = "";
-          document.getElementById("groupId").value = "";
-
-          loadChats();
+          await loadAllData();
+          connectWebSocket();
+          showUser();
         } catch (err) {
-          console.error(err);
-          alert("Error creating group");
+          console.error("Login error:", err);
+          alert("Login failed. Check console for details.");
         }
       }
 
-      //receiver search
-      function searchReceiver() {
-        const query = document.getElementById("receiver").value.toLowerCase();
-        const resultsDiv = document.getElementById("receiverResults");
-
-        resultsDiv.innerHTML = "";
-
-        if (!query) {
-          resultsDiv.style.display = "none";
-          return;
-        }
-
-        // combine users + groups
-        const allOptions = [
-          ...allUsers.map((u) => ({ type: "direct", name: u.name })),
-          ...currentGroups.map((g) => ({ type: "group", name: g })),
-        ];
-
-        const filtered = allOptions.filter((item) =>
-          item.name.toLowerCase().includes(query),
-        );
-
-        if (filtered.length === 0) {
-          resultsDiv.innerHTML = `<div style="color:gray;">No results</div>`;
-          resultsDiv.style.display = "block";
-          return;
-        }
-
-        filtered.forEach((item) => {
-          const div = document.createElement("div");
-          div.innerText =
-            item.type === "group" ? "👥 " + item.name : "👤 " + item.name;
-
-          div.onclick = () => {
-            document.getElementById("receiver").value = item.name;
-            document.getElementById("chatType").value = item.type;
-
-            resultsDiv.style.display = "none";
-          };
-
-          resultsDiv.appendChild(div);
-        });
-
-        resultsDiv.style.display = "block";
+      // Logout
+      function logout() {
+        sessionStorage.clear();
+        ws?.close();
+        document.getElementById("chatApp").style.display = "none";
+        document.getElementById("loginBox").classList.add("show");
+        document.getElementById("email").value = "";
+        document.getElementById("password").value = "";
+        allContacts = [];
+        selectedContact = null;
+        resetChatUI();
       }
 
-      async function openChat(type, chatId, element) {
-        document.getElementById("chatType").value = type;
-        document.getElementById("receiver").value = chatId;
+      //connect   
+      function connectWebSocket() {
+        const token = sessionStorage.getItem("token");
 
-        document
-          .querySelectorAll("#chatList div")
-          .forEach((d) => d.classList.remove("active"));
-        element.classList.add("active");
+        ws = new WebSocket(`ws://localhost:3009/ws?token=${token}`);
 
-        const userId = document.getElementById("userId").value.toLowerCase();
+        ws.onopen = () => {
+          console.log("✅ WebSocket connected");
+          document.getElementById("sendBtn").disabled = false;
+        };
 
-        const res = await fetch(
-          `http://localhost:8005/messages/${type}/${chatId}/${userId}`,
-        );
+        ws.onmessage = (event) => {
+          const rawMsg = event.data;
+          console.log("📨 Message:", rawMsg);
+          updateChatPreview(rawMsg);
 
-        const messages = await res.json();
-
-        const msgBox = document.getElementById("messages");
-        msgBox.innerHTML = "";
-
-        messages.forEach((msg) => {
           const li = document.createElement("li");
 
-          if (msg.sender === userId) {
-            li.className = "green";
-            li.innerText = "You: " + msg.message;
-          } else {
-            li.className = "blue";
-            li.innerText = msg.sender + ": " + msg.message;
+          // 🖼️ IMAGE (live messages)
+          if (rawMsg.includes("🖼️")) {
+            const isMe = rawMsg.includes("You:");
+            li.className = isMe ? "green" : "blue";
+
+            const base64Match = rawMsg.match(/🖼️([a-zA-Z0-9+/=]+)/);
+            if (base64Match) {
+              li.innerHTML = `${isMe ? "🖼️ You: " : "🖼️ "} 
+              <img src="data:image/png;base64,${base64Match[1]}" 
+             style="max-width:250px;max-height:250px;border-radius:8px;display:block;margin:5px 0;">`;
+            } else {
+              li.innerText = rawMsg;
+            }
           }
-
-          msgBox.appendChild(li);
-        });
-
-        msgBox.scrollTop = msgBox.scrollHeight;
+          // TEXT (live messages)
+          else {
+            li.className = rawMsg.includes("You:") ? "green" : "blue";
+            li.innerText = rawMsg;
+          }
+          document.getElementById("messages").appendChild(li);
+          document
+            .querySelectorAll("li img")
+            .forEach((img) => (img.onclick = () => showFullImage(img.src)));
+          document.getElementById("messages").scrollTop =
+            document.getElementById("messages").scrollHeight;
+        };
       }
 
-      window.onload = loadUsers;
+      async function loadAllData() {
+        try {
+          await loadUsers();
+          await loadConversations(); 
+        } catch (err) {
+          console.error("Failed to load data:", err);
+        }
+      }
+
+      // Load users
+      async function loadUsers() {
+        const token = sessionStorage.getItem("token");
+        const res = await fetch("http://localhost:8001/users/public", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`HTTP ${res.status}: ${errorText}`);
+        }
+
+        const dbUsers = await res.json();
+        allUsers = dbUsers;
+        const contacts = dbUsers
+          .filter((user) => user.id !== currentUser.user_id)
+          .map((user) => {
+            const name = user.name || user.username || "Unknown";
+            userMap[user.id] = name;
+            return {
+              type: "contact",
+              name: name,
+              id: user.id,
+              avatarColor: "contact",
+            };
+          });
+          allContacts = contacts;
+      }
+
+      // conversations
+      async function loadConversations() {
+        const token = sessionStorage.getItem("token");
+        const res = await fetch("http://localhost:3009/conversations", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        console.log("Conversations:", data);
+
+        const directChats = (data.direct || []).map((id) => ({
+          id: id,
+          name: userMap[id] || "Unknown",
+          type: "contact",
+          avatarColor: "contact",
+          preview: "Start chatting",
+        }));
+
+        const groups = (data.groups || []).map((groupId) => ({
+          id: groupId,
+          name: groupId,
+          type: "group",
+          avatarColor: "group",
+          preview: "Group chat",
+        }));
+
+        const chats = [...directChats, ...groups];
+        allChats = chats;
+        renderContactsList(allChats);
+        if (chats.length > 0) {
+          const firstChat = chats[0];
+          selectContact(null, firstChat.name, firstChat.id, firstChat.type);
+        }
+      }
+
+      function updateChatPreview(message) {
+        if (selectedContact) {
+          chatPreviews[selectedContact.id] =
+            message.substring(0, 30) + (message.length > 30 ? "..." : "");
+          renderContactsList(
+            filteredContacts.length > 0 ? filteredContacts : allChats,
+          );
+        }
+      }
+ 
+       // show users
+      function showUser() {
+        document.getElementById("userInfo").innerText =
+          `👤 ${currentUser?.name || "User"}`;
+      }
+      // Render contacts list
+      function renderContactsList(contacts) {
+        const contentList = document.getElementById("contentList");
+        if (contacts.length === 0) {
+          contentList.innerHTML =
+            '<div class="loading">No contacts found</div>';
+          return;
+        }
+
+        let html = `<div class="section-header">Direct Messages</div>`;
+        const directContacts = contacts.filter((c) => c.type === "contact");
+        directContacts.forEach((contact) => {
+          html += createChatItemHTML(contact);
+        });
+
+        html += `
+              <button class="create-group-btn" onclick="createGroup()">
+                ➕ Create New Group
+              </button>
+              <div class="section-header">Groups</div>
+            `;
+
+        const groups = contacts.filter((c) => c.type === "group");
+        groups.forEach((group) => {
+          html += createChatItemHTML(group);
+        });
+
+        contentList.innerHTML = html;
+      }
+
+      function createChatItemHTML(chat) {
+        const isActive = selectedContact?.id === chat.id;
+        const avatarClass =
+          chat.avatarColor === "group" ? "avatar group-avatar" : "avatar";
+
+        return `
+              <div class="chat-item ${isActive ? "active" : ""}"
+                   onclick="selectContact('${chat.name}', '${chat.id}', '${chat.type}')">
+                <div class="chat-header">
+                  <div class="${avatarClass}">${chat.name.charAt(0).toUpperCase()}</div>
+                  <div style="flex: 1; min-width: 0;">
+                    <div class="chat-name">${chat.name}</div>
+                  </div>
+                </div>
+              </div>
+            `;
+      }
+      
+      //load messages
+      async function loadMessages(type, id) {
+        const token = sessionStorage.getItem("token");
+        const url = `http://localhost:3009/messages/${type}/${id}`;
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        const messagesList = document.getElementById("messages");
+        messagesList.innerHTML = "";
+
+        data.forEach((msg) => {
+          const li = document.createElement("li");
+          const isMe =
+            msg.sender === currentUser.name ||
+            msg.sender.toLowerCase() === currentUser.name.toLowerCase();
+
+          // IMAGE
+          if (msg.message && msg.message.includes("🖼️")) {
+            li.className = isMe ? "green" : "blue";
+            const base64Match = msg.message.match(/🖼️([a-zA-Z0-9+/=]+)/);
+            if (base64Match) {
+              li.innerHTML = `${isMe ? "🖼️ You: " : `🖼️ ${msg.sender}: `}
+          <img src="data:image/png;base64,${base64Match[1]}" 
+               style="max-width:250px;max-height:250px;border-radius:8px;display:block;margin:5px 0;">`;
+              messagesList.appendChild(li);
+              return;
+            }
+          }
+          // TEXT
+          li.className = isMe ? "green" : "blue";
+          li.innerText = `${isMe ? "You: " : `${msg.sender}: `}${msg.message}`;
+          messagesList.appendChild(li);
+        });
+        messagesList.scrollTop = messagesList.scrollHeight;
+        document
+          .querySelectorAll("li img")
+          .forEach((img) => (img.onclick = () => showFullImage(img.src)));
+      }
+
+      //full screen image
+        function showFullImage(src) {
+        const modal = document.createElement("div");
+        modal.className = "simple-modal";
+        modal.innerHTML = `
+        <img src="${src}" class="simple-img" />
+        <div class="download-bar" onclick="downloadImage('${src}')">Download</div>`;
+        document.body.appendChild(modal);
+        modal.onclick = () => modal.remove();
+      }
+      
+      // download image
+      function downloadImage(src) {
+        const a = document.createElement("a");
+        a.href = src;
+        a.download = "chat-image.png";
+        a.click();
+      }
+
+      function selectContact(name, id, type) {
+        selectedContact = { name, id, type };
+        if (type === "contact") {
+          const exists = allChats.some((c) => c.id === id);
+
+          if (!exists) {
+            allChats.unshift({
+              id: id,
+              name: name,
+              type: "contact",
+              avatarColor: "contact",
+              preview: "",
+            });
+          }
+        }
+
+        // Reset search UI
+        document.getElementById("searchInput").value = "";
+        filteredContacts = [];
+       //Show chats again (NOT all users)
+        renderContactsList(allChats);
+        document.getElementById("messages").innerHTML = "";
+        document.querySelectorAll(".chat-item").forEach((item) => {
+          item.classList.remove("active");
+        });
+
+        event.currentTarget.classList.add("active");
+        const apiType = type === "contact" ? "direct" : "group";
+        updateChatHeader(name, type, id);
+        loadMessages(apiType, id);
+        document.getElementById("sendBtn").disabled = false;
+        console.log("Active chat:", name, id, type);
+      }
+
+      function updateChatHeader(name, type, id) {
+        const header = document.getElementById("chatHeader");
+        const avatar = document.getElementById("chatAvatar");
+        const title = document.getElementById("chatTitle");
+        const subtitle = document.getElementById("chatSubtitle");
+
+        const avatarClass = type === "group" ? "avatar group-avatar" : "avatar";
+        avatar.className = avatarClass;
+        avatar.innerText = name.charAt(0).toUpperCase();
+
+        title.textContent = name;
+        header.style.display = "flex";
+      }
+
+      function searchContacts() {
+        const query = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+
+        // 👉 GROUP MODE → search ALL USERS
+        if (isCreatingGroup) {
+          filteredContacts = allUsers
+            .filter((user) =>
+              (user.name || user.username).toLowerCase().includes(query),
+            )
+            .map((user) => ({
+              type: "contact",
+              name: user.name || user.username,
+              id: user.id,
+              avatarColor: "contact",
+            }));
+        }
+         // search ALL USERS
+        else {
+          filteredContacts = allUsers
+            .filter((user) =>
+              (user.name || user.username).toLowerCase().includes(query),
+            )
+            .map((user) => ({
+              type: "contact",
+              name: user.name || user.username,
+              id: user.id,
+              avatarColor: "contact",
+            }));
+        }
+        renderContactsList(query ? filteredContacts : allChats);
+      }
+
+      //create group
+      async function createGroup() {
+        console.log("allContacts =", allContacts);
+        isCreatingGroup = true;
+
+        //user extraction using your exact structure
+        const userMap = new Map();
+        allContacts.forEach((contact) => {
+          if (contact.type === "contact") {
+            const id = contact.id;
+            const name = contact.name;
+
+            if (id && name && !userMap.has(id)) {
+              userMap.set(id, {
+                id,
+                name,
+                search: [id.toLowerCase(), name.toLowerCase()],
+              });
+            }
+          }
+        });
+
+        const uniqueUsers = Array.from(userMap.values());
+        console.log("USERS found:", uniqueUsers.length);
+
+        if (!uniqueUsers.length) {
+          alert("NO CONTACTS FOUND!");
+          return;
+        }
+
+        // overlay with backdrop
+        const overlay = document.createElement("div");
+        overlay.style.cssText = `
+          position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+          background: rgba(0,0,0,0.5); z-index: 9998; display: flex;
+          align-items: center; justify-content: center;
+        `;
+
+        const modal = document.createElement("div");
+        modal.innerHTML = `
+          <div style="
+            background: white; border-radius: 12px; width: 90%; max-width: 500px;
+            max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.3),overflow:hidden;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+          ">
+            <div style="padding: 20px; border-bottom: 1px solid #eee;">
+              <h3 style="margin: 0; color: #333;">📝 Create Group</h3>
+            </div>
+
+            <div style="padding: 20px;">
+              <input id="groupName" placeholder="Enter group name..."
+                style="width: 100%; padding: 12px; border: 2px solid #ddd;
+                       border-radius: 8px; font-size: 16px; box-sizing: border-box;
+                       margin-bottom: 15px;">
+
+              <div style="margin-bottom: 10px; font-weight: 600; color: #007bff;">
+                <span id="selectedCount">0 selected</span>
+              </div>
+
+              <input id="userFilter" placeholder="Type name to search..."
+                style="width: 100%; padding: 12px; border: 2px solid #ddd;
+                       border-radius: 8px; font-size: 16px; box-sizing: border-box;
+                       margin-bottom: 15px;">
+
+              <div id="userList" style="max-height: 300px; overflow-y: auto;"></div>
+            </div>
+
+            <div style="padding: 20px; border-top: 1px solid #eee; display: flex; gap: 12px;">
+              <button id="createBtn" disabled style="
+                flex: 1; padding: 12px; background: #6c757d; color: white;
+                border: none; border-radius: 8px; font-size: 16px; cursor: not-allowed;
+              ">Create Group</button>
+              <button id="cancelBtn" style="
+                flex: 1; padding: 12px; background: #dc3545; color: white;
+                border: none; border-radius: 8px; font-size: 16px; cursor: pointer;
+              ">Cancel</button>
+            </div>
+          </div>
+        `;
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        // Elements
+        const groupNameInput = document.getElementById("groupName");
+        const filterInput = document.getElementById("userFilter");
+        const userList = document.getElementById("userList");
+        const selectedCount = document.getElementById("selectedCount");
+        const createBtn = document.getElementById("createBtn");
+        const cancelBtn = document.getElementById("cancelBtn");
+
+        const selectedMembers = new Set();
+
+        // ✅ Real-time filter & highlight selected
+        function updateList(query = "") {
+          const q = query.toLowerCase().trim();
+
+          // All users (selected first, then matches)
+          const selectedFirst = Array.from(selectedMembers)
+            .map((id) => uniqueUsers.find((u) => u.id === id))
+            .filter(Boolean);
+          let matches;
+
+          if (!q) {
+            matches = uniqueUsers.filter((u) => !selectedMembers.has(u.id));
+          } else {
+            matches = uniqueUsers.filter(
+              (u) =>
+                !selectedMembers.has(u.id) &&
+                u.search.some((s) => s.includes(q)),
+            );
+          }
+
+          const allToShow = [...selectedFirst, ...matches];
+
+          userList.innerHTML =
+            allToShow
+              .map(
+                (user) => `
+            <div style="
+              padding: 15px; border-bottom: 1px solid #f0f0f0; cursor: pointer;
+              display: flex; align-items: center; gap: 12px;
+              background: ${selectedMembers.has(user.id) ? "#e3f2fd" : "white"};
+              ${selectedMembers.has(user.id) ? "border-left: 4px solid #007bff;" : ""}
+              transition: all 0.2s;
+            " onmouseenter="this.style.background='#f8f9fa'"
+            onmouseleave="this.style.background='${selectedMembers.has(user.id) ? "#e3f2fd" : "white"}'"
+            onclick="window.toggleUser('${user.id}', '${user.name.replace(/'/g, "\\'")}')">
+              ${selectedMembers.has(user.id) ? "✅" : "○"}
+              <strong>${user.name}</strong>
+            </div>
+          `,
+              )
+              .join("") ||
+            '<div style="padding: 40px; text-align: center; color: #999;">No users found</div>';
+
+          selectedCount.textContent = `${selectedMembers.size} selected`;
+          createBtn.disabled =
+            !groupNameInput.value.trim() || selectedMembers.size === 0;
+          createBtn.style.background = createBtn.disabled
+            ? "#6c757d"
+            : "#28a745";
+        }
+
+        // ✅ Toggle selection
+        window.toggleUser = (id, name) => {
+          if (selectedMembers.has(id)) {
+            selectedMembers.delete(id);
+          } else {
+            selectedMembers.add(id);
+          }
+          updateList(filterInput.value);
+        };
+
+        // Events
+        groupNameInput.oninput = () => updateList(filterInput.value);
+        filterInput.oninput = (e) => updateList(e.target.value);
+        groupNameInput.focus();
+
+        cancelBtn.onclick = () => {
+          document.body.removeChild(overlay);
+          delete window.toggleUser;
+        };
+
+        // ✅ Create group 
+        createBtn.onclick = async () => {
+          const groupName = groupNameInput.value.trim();
+          const members = Array.from(selectedMembers);
+
+          try {
+            console.log("🚀 Creating:", { name: groupName, members });
+            const endpoints = ["http://localhost:3009/create-group"];
+
+            let response;
+            for (const endpoint of endpoints) {
+              try {
+                response = await fetch(endpoint, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${sessionStorage.getItem("token") || ""}`, 
+                  },
+                  body: JSON.stringify({
+                    group_id: groupName,
+                    members,
+                  }),
+                });
+
+                if (response.ok) break;
+              } catch (e) {
+                console.log(`❌ ${endpoint} failed, trying next...`);
+              }
+            }
+
+            if (!response?.ok) {
+              throw new Error(
+                `HTTP ${response?.status}: ${response?.statusText}`,
+              );
+            }
+
+            const newGroup = await response.json();
+            await loadGroups();  
+
+            const groupUI = {
+              id: newGroup.id || `group_${Date.now()}`,
+              name: groupName,
+              type: "group",
+              avatarColor: "group",
+              preview: `${members.length} members`,
+              memberCount: members.length,
+            };
+
+            document.body.removeChild(overlay);
+            delete window.toggleUser;
+
+            alert(`"${groupName}" created!`);
+            console.log("✅ Group created:", groupUI);
+          } catch (error) {
+            console.error("Create failed:", error);
+            alert(
+              `Failed to create group:\n${error.message}\n\nCheck if backend supports /groups POST`,
+            );
+          }
+        };
+
+       document.addEventListener("keydown", (e) => {   // ESC to close
+          if (e.key === "Escape") cancelBtn.click();
+        });
+
+        updateList();
+      }
+
+      //send messages
+      async function sendMessage() {
+        const receiverId = selectedContact?.id;
+        const message = document.getElementById("message").value.trim();
+        const imageFile = document.getElementById("imageInput").files[0];
+
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+          alert("Not connected to server");
+          return;
+        }
+        if (!receiverId) {
+          alert("Please select a chat");
+          return;
+        }
+
+        // IMAGE ONLY
+        if (imageFile) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const base64Image = e.target.result.split(",")[1];
+            const imgMsg =
+              selectedContact.type === "group"
+                ? `group:${receiverId}:🖼️${base64Image}`
+                : `${receiverId}:🖼️${base64Image}`;
+
+            ws.send(imgMsg);
+          };
+          reader.readAsDataURL(imageFile);
+          document.getElementById("imageInput").value = "";
+          return;
+        }
+         // TEXT ONLY
+        if (message) {
+          let exactFormat;
+          if (selectedContact.type === "group") {
+            exactFormat = `group:${receiverId}:${message}`;
+          } else {
+            exactFormat = `${receiverId}:${message}`;
+          }
+          console.log("📤 Sending:", exactFormat);
+          ws.send(exactFormat);
+          document.getElementById("message").value = "";
+        }
+        setTimeout(() => {
+          const messagesList = document.getElementById("messages");
+          const lastLi = messagesList.lastElementChild;
+          if (lastLi && lastLi.innerHTML.includes("data:image")) {
+            lastLi.className = "green";
+            lastLi.innerHTML = lastLi.innerHTML.replace("🖼️ ", "🖼️ You: ");
+          }
+        }, 50);
+
+        setTimeout(() => {
+          document.getElementById("messages").scrollTop =
+            document.getElementById("messages").scrollHeight;
+        }, 100);
+      }
+
+      // Enter key support
+      function handleKeyPress(event) {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          sendMessage();
+        }
+      }
+
+      // Auto-login
+      window.onload = () => {
+        const token = sessionStorage.getItem("token");
+        if (token) {
+          try {
+            currentUser = JSON.parse(sessionStorage.getItem("user"));
+            document.getElementById("loginBox").classList.remove("show");
+            document.getElementById("chatApp").style.display = "flex";
+            loadAllData();
+            connectWebSocket();
+            showUser();
+          } catch (e) {
+            console.log("Invalid session");
+          }
+        }
+      };
+      document.getElementById("imageInput").onchange = (e) => {
+        if (e.target.files[0]) sendMessage(); 
+      };
     </script>
   </body>
 </html>

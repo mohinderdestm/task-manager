@@ -1,28 +1,59 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect,Request
 from app.websocket_manager import manager
 from app.database import message_collection, group_collection
 from datetime import datetime
 from app.models import Group
-from fastapi import Header, HTTPException, Depends
+from fastapi import HTTPException, Depends
+from app.auth import get_current_user
+import jwt
+import os
+from dotenv import load_dotenv
+import httpx
+
+
+load_dotenv()
+
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
 router = APIRouter()
 
-def get_token(authorization: str = Header(None)):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing token")
-    return authorization.split(" ")[1]
+# WebSocket Endpoint (SECURE)
+@router.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    token = websocket.query_params.get("token")
 
-# 🔌 WebSocket Endpoint
-@router.websocket("/ws/{user_id}")
-async def websocket_endpoint(websocket: WebSocket, user_id: str):
+    if not token:
+        await websocket.close(code=1008)
+        return
 
-    user_id = user_id.lower()  # ✅ normalize
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("user_id")
+        name = payload.get("name") 
+
+        if not user_id:
+            await websocket.close(code=1008)
+            return
+
+        user_id = user_id.lower()
+
+    except Exception as e:
+        print("JWT ERROR:", e)
+        await websocket.close(code=1008)
+        return
+
     await manager.connect(user_id, websocket)
 
     try:
         while True:
             data = await websocket.receive_text()
 
+            # 🖼️ IMAGE DETECTION (new)
+            if "🖼️" in data:
+                pass 
+            
             # GROUP MESSAGE
             if data.startswith("group:"):
                 try:
@@ -38,27 +69,18 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
                     await websocket.send_text("Group not found")
                     continue
 
-                print(f"🔍 Group '{group_id}' members: {group['members']}")
-                print(f"🔍 Active connections: {list(manager.active_connections.keys())}")
+                # Sender gets "You:"
+                await manager.send_personal_message(f"You: {message}", user_id)
 
-                # Send to sender
-                await manager.send_personal_message(
-                    f"[{group_id}] You: {message}",
-                    user_id
-                )
-
-                # Send to others
+                # Others get "Name:"
                 for member in group["members"]:
                     member = member.lower()
-
                     if member != user_id and member in manager.active_connections:
-                        await manager.send_personal_message(
-                            f"[{group_id}] {user_id}: {message}",
-                            member
-                        )
+                        await manager.send_personal_message(f"{name}: {message}", member)
 
                 await message_collection.insert_one({
                     "sender": user_id,
+                    "sender_name": name,
                     "receiver": group_id,
                     "content": message,
                     "type": "group",
@@ -76,28 +98,44 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
 
                 await message_collection.insert_one({
                     "sender": user_id,
+                    "sender_name": name,
                     "receiver": receiver_id,
                     "content": message,
                     "type": "direct",
                     "timestamp": datetime.utcnow()
                 })
 
-                await manager.send_personal_message(
-                    f"{user_id}: {message}",
-                    receiver_id
-                )
-
-                await manager.send_personal_message(
-                    f"You: {message}",
-                    user_id
-                )
+                # Receiver gets "Name:"
+                await manager.send_personal_message(f"{name}: {message}", receiver_id)
+                
+                # Sender gets "You:"
+                await manager.send_personal_message(f"You: {message}", user_id)
 
     except WebSocketDisconnect:
         manager.disconnect(user_id)
 
-# ✅ CREATE GROUP (NAME ONLY)
+
+
+@router.post("/auth/login")
+async def proxy_login(request: Request):
+    body = await request.json()
+
+    async with httpx.AsyncClient() as client:
+        res = await client.post(
+            "http://localhost:8000/auth/login",
+            json=body
+        )
+
+    return res.json()
+
+
+# CREATE GROUP
 @router.post("/create-group")
-async def create_group(group: Group, token: str = Depends(get_token)):
+async def create_group(
+    group: Group,
+    current_user: dict = Depends(get_current_user)
+):
+    creator = current_user["user_id"].lower()
 
     members_names = []
 
@@ -107,7 +145,9 @@ async def create_group(group: Group, token: str = Depends(get_token)):
 
         members_names.append(name.lower())
 
-    print("FINAL MEMBERS:", members_names)
+    #  Add creator automatically
+    if creator not in members_names:
+        members_names.append(creator)
 
     await group_collection.insert_one({
         "group_id": group.group_id.lower(),
@@ -117,13 +157,14 @@ async def create_group(group: Group, token: str = Depends(get_token)):
 
     return {"message": "Group created successfully"}
 
-# ✅ GET USER CONVERSATIONS (SIDEBAR)
-@router.get("/conversations/{user_id}")
-async def get_conversations(user_id: str):
 
-    user_id = user_id.lower()
+#  GET USER CONVERSATIONS
+@router.get("/conversations")
+async def get_conversations(
+    current_user: dict = Depends(get_current_user)
+):
+    user_id = current_user["user_id"].lower()
 
-    # DIRECT CHATS
     sent_to = await message_collection.distinct(
         "receiver",
         {"sender": user_id, "type": "direct"}
@@ -136,7 +177,6 @@ async def get_conversations(user_id: str):
 
     direct_users = list(set(sent_to + received_from))
 
-    # GROUPS
     groups = await group_collection.find(
         {"members": user_id}
     ).to_list(None)
@@ -148,15 +188,18 @@ async def get_conversations(user_id: str):
         "groups": group_ids
     }
 
-# ✅ GET OLD MESSAGES
-@router.get("/messages/{chat_type}/{chat_id}/{user_id}")
-async def get_messages(chat_type: str, chat_id: str, user_id: str):
 
+# GET OLD MESSAGES
+@router.get("/messages/{chat_type}/{chat_id}")
+async def get_messages(
+    chat_type: str,
+    chat_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    user_id = current_user["user_id"].lower()
     chat_id = chat_id.lower()
-    user_id = user_id.lower()
 
     if chat_type == "direct":
-
         messages = await message_collection.find({
             "type": "direct",
             "$or": [
@@ -165,19 +208,29 @@ async def get_messages(chat_type: str, chat_id: str, user_id: str):
             ]
         }).sort("timestamp", 1).to_list(None)
 
-    else:  # group
-
+    else:
         messages = await message_collection.find({
             "type": "group",
             "receiver": chat_id
         }).sort("timestamp", 1).to_list(None)
 
-    # clean response
     return [
         {
-            "sender": msg["sender"],
+            "sender": msg.get("sender_name", msg["sender"]),
             "message": msg["content"]
         }
         for msg in messages
     ]
 
+
+@router.get("/group/{group_id}")
+async def get_group(group_id: str, current_user: dict = Depends(get_current_user)):
+    group = await group_collection.find_one({"group_id": group_id.lower()})
+
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    return {
+        "group_id": group["group_id"],
+        "members": group["members"]
+    }

@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import List,Optional
+from typing import List
 
 class Message(BaseModel):
     sender: str
@@ -10,7 +10,7 @@ class Message(BaseModel):
 
 class Group(BaseModel):
     group_id: str
-    members: List[str]
+    members: List[str]=[]
     timestamp: datetime | None = None
 
     
