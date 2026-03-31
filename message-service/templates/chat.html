@@ -18,16 +18,19 @@ body {
 
 #box {
     flex: 1;
-    padding: 10px;
+    padding: 20px;
     overflow-y: auto;
-    background: #ecf0f1;
+    background: #e5ddd5;
+    display: flex;
+    flex-direction: column;
 }
 
 .msg {
-    margin: 5px 0;
-    padding: 8px;
-    border-radius: 8px;
-    max-width: 20%;
+    margin: 10px 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    max-width: 45%;
+    word-wrap: break-word;
 }
 
 .me {
@@ -37,34 +40,510 @@ body {
 }
 
 .other {
-    background: white;
+    background: #ffffff;
+    margin-right: auto;
 }
 
 .footer {
     display: flex;
+    padding: 10px;
+    background: #f0f0f0;
 }
 
 .footer input {
     flex: 1;
     padding: 10px;
+    border-radius: 20px;
+    border: 1px solid #ccc;
 }
 
 .footer button {
-    padding: 10px;
+    margin-left: 10px;
+    padding: 10px 15px;
+    border-radius: 20px;
     background: #2ecc71;
-    color: white;
-    border: none;
 }
 </style>
 </head>
 
 <body>
 
-<div class="header" id="chatHeader">Chat</div>
+<div class="header">
+    <div id="chatTitle">Chat</div>
+    <div id="adminLabel" style="font-size:12px; color:lightgray;"></div>
+    
+    <button onclick="toggleMembers()" style="
+        margin-top:5px;
+        padding:5px 10px;
+        border:none;
+        border-radius:10px;
+        cursor:pointer;
+    ">
+        View Members
+    </button>
+</div>
+
+<div id="membersBox" style="
+    display:none;
+    background:#ecf0f1;
+    padding:10px;
+    max-height:150px;
+    overflow-y:auto;
+">
+</div>
+
+<!-- 🔥 ADD MEMBER BOX (ADMIN ONLY) -->
+<div id="addMemberBox" style="padding:10px; display:none; background:#ecf0f1;">
+    <input id="memberName" placeholder="Enter username">
+    <button onclick="addMember()">Add</button>
+</div>
 
 <div id="box"></div>
 
 <div id="typing" style="padding:5px; color:gray;"></div>
+
+<input type="file" id="imageInput">
+
+<div class="footer">
+    <input id="msg" placeholder="Type message..." oninput="sendTyping()">
+    <button onclick="send()">Send</button>
+</div>
+
+<!-- 🔥 IMAGE MODAL -->
+<div id="imageModal" style="
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.8);
+    justify-content:center;
+    align-items:center;
+">
+    <img id="modalImg" style="max-width:90%; max-height:90%;">
+</div>
+
+<script>
+let groupMembers = [];
+let groupAdmins = [];
+const convo = "{{conversation_id}}";
+const token = sessionStorage.getItem("token");
+
+const ws = new WebSocket(`ws://127.0.0.1:8000/ws/${convo}?token=${token}`);
+const box = document.getElementById("box");
+
+function getUserData() {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return {
+        name: payload.name,
+        email: payload.email
+    };
+}
+
+const currentUser = getUserData();
+
+/* 🔥 USER MAP FIX */
+let userMap = {};
+
+async function loadUserMap() {
+    const res = await fetch("/users", {
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    });
+
+    const users = await res.json();
+
+    users.forEach(u => {
+        userMap[u.email] = u.name;
+    });
+
+    userMap[currentUser.email] = currentUser.name;
+}
+
+function getNameFromEmail(email) {
+    return userMap[email] || email;
+}
+
+async function loadConversationInfo() {
+    const res = await fetch(`/conversation/${convo}`, {
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    });
+
+    const data = await res.json();
+
+    if (data.is_group) {
+        document.getElementById("chatTitle").innerText =
+            data.group_name || "Group";
+
+        groupMembers = data.participants;
+        groupAdmins = data.admins || [];
+
+        if (groupAdmins.includes(currentUser.email)) {
+            document.getElementById("adminLabel").innerText = "You are Admin";
+            document.getElementById("addMemberBox").style.display = "block";
+        } else {
+            const adminNames = groupAdmins
+                .map(a => getNameFromEmail(a))
+                .join(", ");
+
+            document.getElementById("adminLabel").innerText =
+                "Admins: " + adminNames;
+        }
+    }
+}
+function toggleMembers() {
+    const box = document.getElementById("membersBox");
+
+    if (box.style.display === "none") {
+        renderMembers();
+        box.style.display = "block";
+    } else {
+        box.style.display = "none";
+    }
+}
+function renderMembers() {
+    const box = document.getElementById("membersBox");
+    box.innerHTML = "";
+
+    groupMembers.forEach(email => {
+        const name = getNameFromEmail(email);
+        const isAdmin = groupAdmins.includes(email);
+        const isMe = email === currentUser.email;
+
+        let html = `<div style="padding:5px; border-bottom:1px solid #ccc;">`;
+
+        html += name;
+
+        if (isAdmin) {
+            html += " 👑";
+        }
+
+        // 🔥 ONLY ADMIN CAN SEE BUTTONS
+        if (groupAdmins.includes(currentUser.email) && !isMe) {
+
+            // REMOVE BUTTON
+            if (!isAdmin) {
+                html += ` 
+                <button onclick="removeMember('${email}')"
+                    style="margin-left:10px; background:red; color:white;">
+                    Remove
+                </button>`;
+            }
+
+            // MAKE ADMIN BUTTON
+            if (!isAdmin) {
+                html += `
+                <button onclick="makeAdmin('${email}')"
+                    style="margin-left:5px; background:orange;">
+                    Make Admin
+                </button>`;
+            }
+        }
+
+        html += `</div>`;
+
+        box.innerHTML += html;
+    });
+}
+
+async function removeMember(email) {
+    if (!confirm("Remove this user?")) return;
+
+    const res = await fetch(`/remove-from-group/${convo}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ email })
+    });
+
+    const data = await res.json();
+    alert(data.message || data.error);
+
+    loadConversationInfo();
+}
+
+async function makeAdmin(email) {
+    const res = await fetch(`/make-admin/${convo}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ email })
+    });
+
+    const data = await res.json();
+    alert(data.message || data.error);
+
+    loadConversationInfo();
+}
+
+/* 🔥 ADD MEMBER BY NAME */
+async function addMember() {
+    const name = document.getElementById("memberName").value.trim();
+
+    if (!name) {
+        alert("Enter username");
+        return;
+    }
+
+    const res = await fetch(`/add-to-group/${convo}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({
+            names: [name]
+        })
+    });
+
+    const data = await res.json();
+
+    if (data.message) {
+        alert("User added");
+        document.getElementById("memberName").value = "";
+    } else {
+        alert(data.error || "Error");
+    }
+}
+
+/* 🔥 LOAD MESSAGES */
+async function load() {
+    const res = await fetch(`/messages/${convo}`, {
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    });
+
+    const data = await res.json();
+
+    data.forEach(m => addMsg(m.sender, m.text, m.image));
+}
+
+function addMsg(sender, text, image=null) {
+    const div = document.createElement("div");
+    div.classList.add("msg");
+
+    if (sender === currentUser.email) {
+        div.classList.add("me");
+    } else {
+        div.classList.add("other");
+    }
+
+    const name = getNameFromEmail(sender);
+
+    let content = "";
+
+    if (sender !== currentUser.email) {
+        content += `<b style="font-size:12px; color:gray;">${name}</b><br>`;
+    }
+
+    if (text) content += text + "<br>";
+
+    if (image && image.startsWith("/uploads/")) {
+        content += `<img src="${image}" onclick="openImage('${image}')" style="max-width:200px; cursor:pointer;">`;
+    }
+
+    div.innerHTML = content;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+}
+
+/* 🔥 WEBSOCKET */
+ws.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+
+    if (data.type === "typing") {
+        showTyping(data.sender);
+    }
+
+    if (data.type === "message") {
+        addMsg(data.sender, data.text, data.image);
+        clearTyping();
+    }
+};
+
+/* 🔥 TYPING */
+let typingTimeout;
+
+function sendTyping() {
+    ws.send(JSON.stringify({ type: "typing" }));
+}
+
+function showTyping(sender) {
+    const div = document.getElementById("typing");
+    div.innerText = getNameFromEmail(sender) + " is typing...";
+
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => div.innerText = "", 2000);
+}
+
+function clearTyping() {
+    document.getElementById("typing").innerText = "";
+}
+
+/* 🔥 SEND */
+async function send() {
+    let imageUrl = null;
+
+    const fileInput = document.getElementById("imageInput");
+
+    if (fileInput.files.length > 0) {
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+
+        const res = await fetch("/upload", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+        if (data.error) return alert(data.error);
+
+        imageUrl = data.url;
+    }
+
+    ws.send(JSON.stringify({
+        type: "message",
+        text: msg.value,
+        image: imageUrl
+    }));
+
+    msg.value = "";
+    fileInput.value = "";
+}
+
+/* 🔥 IMAGE MODAL */
+function openImage(src) {
+    document.getElementById("modalImg").src = src;
+    document.getElementById("imageModal").style.display = "flex";
+}
+
+document.getElementById("imageModal").onclick = function() {
+    this.style.display = "none";
+};
+
+/* 🔥 INIT */
+async function init() {
+    await loadUserMap();        // ✅ FIX NAMES
+    await loadConversationInfo(); // ✅ SHOW ADMIN
+    load();
+}
+
+init();
+</script>
+
+</body>
+</html>
+
+<!-- <!DOCTYPE html>
+<html>
+<head>
+<style>
+body {
+    font-family: Arial;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.header {
+    background: #2c3e50;
+    color: white;
+    padding: 10px;
+}
+
+#box {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: #e5ddd5;  /* WhatsApp-like bg */
+    display: flex;
+    flex-direction: column;
+}
+
+.msg {
+    margin: 10px 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    max-width: 45%;   /* 🔥 smaller = better */
+    word-wrap: break-word;
+    display: inline-block;
+}
+
+.me {
+    background: #3498db;
+    color: white;
+    margin-left: auto;
+    text-align: left;
+}
+
+.other {
+    background: #ffffff;
+    margin-right: auto;
+    text-align: left;
+}
+
+.footer {
+    display: flex;
+    padding: 10px;
+    background: #f0f0f0;
+}
+
+.footer input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+}
+
+.footer button {
+    margin-left: 10px;
+    padding: 10px 15px;
+    border-radius: 20px;
+    background: #2ecc71;
+}
+</style>
+</head>
+<div id="imageModal" style="
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.8);
+    justify-content:center;
+    align-items:center;
+    z-index:1000;
+">
+    <img id="modalImg" style="
+        max-width:90%;
+        max-height:90%;
+        border-radius:10px;
+    ">
+</div>
+
+<body>
+
+<div class="header" id="chatHeader">
+    <div id="chatTitle">Chat</div>
+    <div id="adminLabel" style="font-size:12px; color:lightgray;"></div>
+</div>
+
+<div id="box"></div>
+
+<div id="typing" style="padding:5px; color:gray;"></div>
+
+<input type="file" id="imageInput">
 
 <div class="footer">
     <input id="msg" placeholder="Type message..." oninput="sendTyping()">
@@ -104,12 +583,16 @@ async function load() {
 
     const data = await res.json();
 
-    data.forEach(m => addMsg(m.sender, m.text));
+    data.forEach(m => addMsg(m.sender, m.text, m.image));
 }
 
-function addMsg(sender, text) {
+function addMsg(sender, text, image=null) {
     const div = document.createElement("div");
     div.classList.add("msg");
+
+    div.style.display = "flex";
+    div.style.flexDirection = "column";
+
 
     if (sender === currentUser.email) {
         div.classList.add("me");
@@ -119,13 +602,61 @@ function addMsg(sender, text) {
 
     const name = getNameFromEmail(sender);
 
-    div.innerHTML = `<b>${name}</b><br>${text}`;
+   let content = "";
+
+    // show name only for OTHER users
+    if (sender !== currentUser.email) {
+        content += `<b style="font-size:12px; color:gray;">${name}</b><br>`;
+    }
+
+    if (text) {
+        content += text + "<br>";
+    }
+
+    if (image) {
+    // 🔥 Basic safety check (only allow uploads folder)
+    if (image.startsWith("/uploads/")) {
+        content += `
+        <img src="${image}" 
+         onclick="openImage('${image}')"
+         style="
+            max-width:220px;
+            border-radius:10px;
+            margin-top:6px;
+            cursor:pointer;
+            display:block;
+         ">
+`;
+    }
+    }
+
+    div.innerHTML = content;
 
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
 }
 
 let typingTimeout;
+
+async function loadConversationInfo() {
+    const res = await fetch(`/conversation/${convo}`, {
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    });
+
+    const data = await res.json();
+
+    if (data.is_group) {
+        document.getElementById("chatTitle").innerText = data.group_name || "Group";
+
+        if (data.admin === currentUser.email) {
+            document.getElementById("adminLabel").innerText = "You are Admin";
+        } else {
+            document.getElementById("adminLabel").innerText = "Admin: " + getNameFromEmail(data.admin);
+        }
+    }
+}
 
 function showTyping(sender) {
     const div = document.getElementById("typing");
@@ -153,24 +684,69 @@ ws.onmessage = (e) => {
     }
 
     if (data.type === "message") {
-        addMsg(data.sender, data.text);
+        addMsg(data.sender, data.text,data.image);
         clearTyping();
     }
 };
 
-function send() {
-    if (!msg.value) return;
+async function send() {
+    let imageUrl = null;
+
+    const fileInput = document.getElementById("imageInput");
+
+    if (fileInput.files.length > 0) {
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+
+        const res = await fetch("/upload", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+        if (data.error) {
+        alert(data.error);
+        return;
+} 
+        imageUrl = data.url;
+    }
 
     ws.send(JSON.stringify({
         type: "message",
-        text: msg.value
+        text: msg.value,
+        image: imageUrl
     }));
 
     msg.value = "";
+    fileInput.value = "";
+}
+function openImage(src) {
+    const modal = document.getElementById("imageModal");
+    const img = document.getElementById("modalImg");
+
+    img.src = src;
+    modal.style.display = "flex";
 }
 
+// 🔥 CLOSE MODAL ON CLICK
+document.getElementById("imageModal").onclick = function() {
+    this.style.display = "none";
+};
+
+// function send() {
+//     if (!msg.value) return;
+
+//     ws.send(JSON.stringify({
+//         type: "message",
+//         text: msg.value
+//     }));
+
+//     msg.value = "";
+// }
+
 load();
+loadConversationInfo();
 </script>
 
 </body>
-</html>
+</html> -->

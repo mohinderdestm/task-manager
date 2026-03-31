@@ -1,10 +1,14 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import RedirectResponse
+import os
+import json
+import uuid
+from bson import ObjectId
 from datetime import datetime
 from typing import Dict, List
-from bson import ObjectId
-import json
+from fastapi import UploadFile, File
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 
 from db import user_collection, message_collection, conversation_collection
 from auth import create_token, verify_token
@@ -13,6 +17,10 @@ app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
 connections: Dict[str, List[WebSocket]] = {}
+
+
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.get("/")
 async def login_page(request: Request):
@@ -124,6 +132,30 @@ async def get_users(request: Request):
 
     return users
 
+@app.post("/upload")
+async def upload_image(file: UploadFile = File(...)):
+
+    # ✅ Validate type
+    if not file.content_type.startswith("image/"):
+        return {"error": "Only images allowed"}
+
+    content = await file.read()
+
+    # ✅ Validate size (2MB)
+    if len(content) > 2 * 1024 * 1024:
+        return {"error": "Max 2MB allowed"}
+
+    import uuid
+    ext = file.filename.split(".")[-1]
+    filename = f"{uuid.uuid4()}.{ext}"
+
+    filepath = f"uploads/{filename}"
+
+    with open(filepath, "wb") as f:
+        f.write(content)
+
+    return {"url": f"/uploads/{filename}"}
+
 @app.post("/create-group")
 async def create_group(request: Request, data: dict):
     auth = request.headers.get("Authorization")
@@ -147,7 +179,7 @@ async def create_group(request: Request, data: dict):
         "participants": participants,
         "is_group": True,
         "group_name": group_name,
-        "admin": creator,
+        "admins": [creator],
         "created_at": datetime.utcnow()
     }
 
@@ -174,14 +206,22 @@ async def add_to_group(conversation_id: str, request: Request, data: dict):
     if not convo or not convo.get("is_group"):
         return {"error": "Not a group"}
 
-    if user_data["email"] != convo["admin"]:
+    admins = convo.get("admins", [])
+
+    if user_data["email"] not in (admins or []):
         return {"error": "Only admin can add users"}
 
-    new_users = data.get("users", [])
+    names = data.get("names", [])
+    emails = []
+
+    for name in names:
+       user = await user_collection.find_one({"name": name})
+       if user:
+        emails.append(user["email"])
 
     await conversation_collection.update_one(
         {"_id": ObjectId(conversation_id)},
-        {"$addToSet": {"participants": {"$each": new_users}}}
+        {"$addToSet": {"participants": {"$each": emails}}}
     )
 
     return {"message": "Users added"}
@@ -213,11 +253,72 @@ async def get_my_chats(request: Request):
             "is_group": chat.get("is_group", False),
             "group_name": chat.get("group_name"),
             "participants": chat["participants"],
-            "admin": chat.get("admin"),
+            "admins": chat.get("admins",[]),
             "last_message": chat.get("last_message", "")
         })
 
     return result
+
+@app.post("/remove-from-group/{conversation_id}")
+async def remove_from_group(conversation_id: str, request: Request, data: dict):
+    token = request.headers.get("Authorization").split(" ")[1]
+    user_data = verify_token(token)
+
+    if not user_data:
+        return {"error": "Unauthorized"}
+
+    convo = await conversation_collection.find_one({
+        "_id": ObjectId(conversation_id)
+    })
+
+    if not convo or not convo.get("is_group"):
+        return {"error": "Not a group"}
+
+    admins = convo.get("admins", [])
+
+    if user_data["email"] not in (admins or []):
+        return {"error": "Only admin can promote"}
+
+    email = data.get("email")
+
+    if email in convo.get("admins", []):
+        return {"error": "Cannot remove another admin"}
+
+    await conversation_collection.update_one(
+        {"_id": ObjectId(conversation_id)},
+        {"$pull": {"participants": email}}
+    )
+
+    return {"message": "User removed"}
+
+@app.post("/make-admin/{conversation_id}")
+async def make_admin(conversation_id: str, request: Request, data: dict):
+    token = request.headers.get("Authorization").split(" ")[1]
+    user_data = verify_token(token)
+
+    if not user_data:
+        return {"error": "Unauthorized"}
+
+    convo = await conversation_collection.find_one({
+        "_id": ObjectId(conversation_id)
+    })
+
+    if not convo:
+        return {"error": "Not found"}
+    
+    admins = convo.get("admins", [])
+
+    if user_data["email"] not in (admins or []):
+        return {"error": "Only admin can promote"}
+
+    email = data.get("email")
+
+    await conversation_collection.update_one(
+        {"_id": ObjectId(conversation_id)},
+        {"$addToSet": {"admins": email}}
+    )
+
+    return {"message": "User promoted to admin"}
 
 @app.post("/delete-for-me/{conversation_id}")
 async def delete_for_me(conversation_id: str, request: Request):
@@ -308,6 +409,7 @@ async def websocket_endpoint(websocket: WebSocket, conversation_id: str):
     try:
         while True:
             data = json.loads(await websocket.receive_text())
+
             if data.get("type") == "typing":
                 for conn in connections[conversation_id]:
                     if conn != websocket:
@@ -316,9 +418,11 @@ async def websocket_endpoint(websocket: WebSocket, conversation_id: str):
                             "sender": user_email
                         }))
                 continue
+            text = data.get("text", "")
+            image = data.get("image", None)
 
-        
-            text = data.get("text")
+            if not text and not image:
+                continue
 
             participants = convo["participants"]
             receivers = [p for p in participants if p != user_email]
@@ -328,6 +432,7 @@ async def websocket_endpoint(websocket: WebSocket, conversation_id: str):
                 "sender": user_email,
                 "receivers": receivers,
                 "text": text,
+                "image": image,
                 "created_at": datetime.utcnow()
             }
 
@@ -337,7 +442,7 @@ async def websocket_endpoint(websocket: WebSocket, conversation_id: str):
                 {"_id": ObjectId(conversation_id)},
                 {
                     "$set": {
-                        "last_message": text,
+                        "last_message": text or "Image",
                         "last_message_at": datetime.utcnow()
                     }
                 }
@@ -347,7 +452,8 @@ async def websocket_endpoint(websocket: WebSocket, conversation_id: str):
                 await conn.send_text(json.dumps({
                     "type": "message",
                     "sender": user_email,
-                    "text": text
+                    "text": text,
+                    "image": data.get("image")
                 }))
 
     except WebSocketDisconnect:
@@ -374,9 +480,11 @@ async def get_conversation(conversation_id: str, request: Request):
     if not convo:
         return {"error": "Conversation not found"}
 
+    admins = convo.get("admins", [])
+
     return {
         "is_group": convo.get("is_group", False),
         "group_name": convo.get("group_name"),
-        "admin": convo.get("admin"),
+        "admins": admins or [],
         "participants": convo.get("participants", [])
     }
