@@ -34,6 +34,41 @@ async def get_team(token_data: dict = Depends(require_roles(["manager"]))):
         "users": users
     }
 
+# --------------------------
+# PUBLIC USERS LIST
+# --------------------------
+@router.get("/public")
+async def list_users_public(token_data: dict = Depends(validate_token)):
+    users = await get_all_users()
+
+    return [
+        {
+            "id": str(user.get("_id") or user.get("id")),
+            "name": user.get("name") or user.get("email") or "Unknown User"
+        }
+        for user in users
+    ]
+
+
+# --------------------------
+# PUBLIC USER BY ID
+# --------------------------
+@router.get("/public/{user_id}")
+async def get_user_public(
+    user_id: str,
+    token_data: dict = Depends(validate_token)
+):
+    user = await get_user(user_id)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {
+        "id": str(user.get("_id") or user.get("id")),
+        "name": user.get("name") or user.get("email") or "Unknown User"
+    }
+
+
 
 # --------------------------
 # GET USER PROFILE
@@ -92,3 +127,4 @@ async def update_user_profile(
         "message": "User updated successfully",
         "user": updated_user
     }
+
