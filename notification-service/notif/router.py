@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from datetime import datetime
 from typing import Optional
 from bson import ObjectId
+from notif.queue import process_notification
 
 from database import notifications_collection, tasks_collection, users_collection
 from models import (
@@ -9,10 +10,9 @@ from models import (
     BulkNotifyRequest, NotifyUserRequest, TaskCreatedWebhook,
     TaskUpdatedWebhook
 )
-from utils import build_email_content, send_email
+from utils import build_email_content
 
 from notif.dependencies import get_current_user
-from notif.queue import notification_queue
 
 router = APIRouter(prefix="/notify", tags=["Notifications"])
 
@@ -57,8 +57,10 @@ async def build_and_queue(
  
     result = await notifications_collection.insert_one(doc)
     notification_id = str(result.inserted_id)
-    await notification_queue.put(notification_id)
+    # await notification_queue.put(notification_id)
+    process_notification.delay(notification_id)
     return notification_id
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -77,7 +79,7 @@ async def task_created_webhook(payload: TaskCreatedWebhook):
         if db_user:
             recipient_email = db_user.get("email")
             user_name = resolve_user_name(db_user)   # handles profile.name
-    except Exception:
+    except Exception as e:
         pass
 
     if not recipient_email:
@@ -103,7 +105,8 @@ async def task_created_webhook(payload: TaskCreatedWebhook):
 
     result = await notifications_collection.insert_one(doc)
     notification_id = str(result.inserted_id)
-    await notification_queue.put(notification_id)
+    # await notification_queue.put(notification_id)
+    process_notification.delay(notification_id)
 
     return {
         "message": "Notification queued successfully",
@@ -205,7 +208,8 @@ async def notify_task(task_id: str, request: NotifyTaskRequest, user=Depends(get
 
     result = await notifications_collection.insert_one(doc)
     notification_id = str(result.inserted_id)
-    await notification_queue.put(notification_id)
+    # await notification_queue.put(notification_id)
+    process_notification.delay(notification_id)
 
     return {
         "message": "Notification queued successfully",
@@ -297,7 +301,8 @@ async def retry_notification(notification_id: str, user=Depends(get_current_user
         }}
     )
  
-    await notification_queue.put(notification_id)
+    # await notification_queue.put(notification_id)
+    process_notification.delay(notification_id)
  
     return {
         "message": "Notification re-queued for retry",
@@ -488,7 +493,8 @@ async def bulk_notify(request: BulkNotifyRequest, user=Depends(get_current_user)
 
         result = await notifications_collection.insert_one(doc)
         notification_id = str(result.inserted_id)
-        await notification_queue.put(notification_id)
+        # await notification_queue.put(notification_id)
+        process_notification.delay(notification_id)
         queued_ids.append(notification_id)
 
     return {
@@ -546,7 +552,8 @@ async def notify_user(user_id: str, body: NotifyUserRequest, user=Depends(get_cu
 
     result = await notifications_collection.insert_one(doc)
     notification_id = str(result.inserted_id)
-    await notification_queue.put(notification_id)
+    # await notification_queue.put(notification_id)
+    process_notification.delay(notification_id)
 
     return {
         "message": "Notification queued successfully",
